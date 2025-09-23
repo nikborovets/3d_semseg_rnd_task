@@ -64,7 +64,8 @@ def set_random_seed(seed=42):
     
     print("✅ Random seed установлен для всех библиотек")
 
-set_random_seed(42)
+random_seed = 42
+set_random_seed(random_seed)
 
 # Check if the weights and file exist and download
 if not os.path.isfile('weights.pth'):
@@ -78,7 +79,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--file_name', type=str, default='/workspace/pcd_files/down0.01.pcd')
 parser.add_argument('--weights', type=str, default='weights.pth')
 parser.add_argument('--use_cpu', action='store_true')
-parser.add_argument('--output', type=str, default='/workspace/minkowski_plys/minkowski_segmentation_result_002_voxel_seed42.ply')
+parser.add_argument('--output', type=str, default='result_plys/minkowski_plys/minkowski_segmentation_result.ply')
 
 CLASS_LABELS = ('wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table',
                 'door', 'window', 'bookshelf', 'picture', 'counter', 'desk',
@@ -167,7 +168,7 @@ if __name__ == '__main__':
     coords, colors, pcd = load_file(config.file_name)
     # Measure time
     with torch.no_grad():
-        voxel_size = 0.02  # Изменено на 5см
+        voxel_size = 0.03  # Изменено на 5см
         # Feed-forward pass and get the prediction
         in_field = ME.TensorField(
             features=normalize_color(torch.from_numpy(colors)),
@@ -207,6 +208,15 @@ if __name__ == '__main__':
         np.array(pcd.points) + np.array([0, 5, 0]))
 
     # Save the prediction to PLY file
+    # Создаем динамическое имя выходного файла
+    input_filename = os.path.splitext(os.path.basename(config.file_name))[0]
+    model_name = "MinkUNet34C"
+    downsampling_method = "voxel"  # Minkowski использует voxel-based подход
+    output_filename = (f"{input_filename}_Minkowski_{model_name}_"
+                      f"downsample_{downsampling_method}_voxel{voxel_size}m_"
+                      f"segmented_seed_{random_seed}.ply")
+    config.output = f"result_plys/minkowski_plys/{output_filename}"
+    os.makedirs(os.path.dirname(config.output), exist_ok=True)
     o3d.io.write_point_cloud(config.output, pred_pcd)
     print(f"Segmentation result saved to: {config.output}")
     # print(f"Processed {len(coords)} points")

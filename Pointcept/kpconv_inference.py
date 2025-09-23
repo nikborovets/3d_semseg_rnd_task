@@ -24,7 +24,7 @@ from datasets.S3DIS import S3DISCustomBatch
 import random
 
 # Импорты предобработки
-from demo.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
+from pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
 
 
 def set_random_seed(seed=42):
@@ -49,8 +49,6 @@ def set_random_seed(seed=42):
     torch.backends.cudnn.benchmark = False
     
     print("✅ Random seed установлен для всех библиотек")
-
-set_random_seed(42)
 
 
 class CustomPointCloudDataset(PointCloudDataset):
@@ -325,7 +323,9 @@ class KPConvInferencer:
 
 def main():
     """Основная функция для демонстрации инференса"""
-    
+    random_seed = 42
+    set_random_seed(random_seed)
+
     print("=" * 80)
     print("KPCONV INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
     print("=" * 80)
@@ -333,18 +333,17 @@ def main():
     # Параметры предобработки
     pcd_file_path = "/workspace/pcd_files/down0.01.pcd"
     model_path = "/workspace/kpconv_weights/Light_KPFCNN"
-    downsampling_method = "voxel"
-    voxel_size = 0.05
-    chunk_size = 50000
+    downsampling_method = "grid"
+    voxel_size = 0.03
+    chunk_size = 600000
     
     # Создаем информативное имя выходного файла
-    import os
     input_filename = os.path.splitext(os.path.basename(pcd_file_path))[0]
     model_name = os.path.basename(model_path)
     output_filename = (f"{input_filename}_KPConv_{model_name}_"
                       f"downsample_{downsampling_method}_voxel{voxel_size}m_"
-                      f"chunk{chunk_size}_segmented.ply")
-    output_path = f"/workspace/kpconv_plys/{output_filename}"
+                      f"chunk{chunk_size}_segmented_seed_{random_seed}.ply")
+    output_path = f"result_plys/kpconv_plys/{output_filename}"
     
     print(f"Входной файл: {pcd_file_path}")
     print(f"Модель: {model_name}")
@@ -397,6 +396,7 @@ def main():
         
         # 6. Сохраняем результат
         print(f"\n6. Сохраняем результат в {output_path}...")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         o3d.io.write_point_cloud(output_path, colored_pcd)
         
         print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")

@@ -238,3 +238,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+yandex_disk_archive.zip
+kpconv_weights_yandex_disk.zip
+kpconv_weights/
+pcd_files/
+1.ply
+weights.pth
+Pointcept/kernels/dispositions/
+result_plys/

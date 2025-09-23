@@ -20,5 +20,7 @@ build_docker:
 	@echo "Сборка Docker образа..."
 	cd Pointcept && docker compose build
 
-all: download_pcd download_weights build_docker
+download_data: download_pcd download_weights
+
+all: download_data build_docker
 	@echo "Все задачи выполнены. Файлы скачаны, Docker образ собран."

@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-from demo.pcd_preprocessor import load_and_preprocess_pcd
+from pcd_preprocessor import load_and_preprocess_pcd
 
 
 def analyze_numpy_array(key, array):

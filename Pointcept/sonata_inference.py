@@ -14,16 +14,17 @@
 
 
 import sys
+import os
 import random
 import numpy as np
 import open3d as o3d
+sys.path.append('./third_party/sonata')
 import sonata
 import torch
 import torch.nn as nn
 
 from point_analyzer import analyze_point_dict, get_point_summary
 from pcd_preprocessor import load_and_preprocess_pcd
-sys.path.append('./third_party/sonata')
 
 
 def set_random_seed(seed=42):
@@ -56,7 +57,8 @@ def set_random_seed(seed=42):
     
     print("✅ Random seed установлен для всех библиотек")
 
-set_random_seed(42)
+random_seed = 42
+set_random_seed(random_seed)
 # try:
 #     import flash_attn
 # except ImportError:
@@ -239,11 +241,14 @@ if __name__ == "__main__":
         # pcd_file_path = "/workspace/pcd_files/music_room.pcd"
         
         # Загружаем и предобрабатываем PCD файл
+        downsampling_method="grid"
+        voxel_size=0.03,  # размер вокселя в метрах (2.5 см)
+
         point = load_and_preprocess_pcd(
             file_path=pcd_file_path,
             # downsampling_method="voxel",  # "voxel" или "random" или "grid"
-            downsampling_method="random",  # "voxel" или "random" или "grid"
-            voxel_size=0.05,  # размер вокселя в метрах (2.5 см)
+            downsampling_method=downsampling_method,  # "voxel" или "random" или "grid"
+            voxel_size=voxel_size,  # размер вокселя в метрах (2.5 см)
             target_points=193982,  # для random downsampling
             add_segmentation=True
         )
@@ -294,6 +299,16 @@ if __name__ == "__main__":
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(point.coord.cpu().detach().numpy())
     pcd.colors = o3d.utility.Vector3dVector(color / 255)
+
+    # Создаем динамическое имя выходного файла
+    input_filename = os.path.splitext(os.path.basename(pcd_file_path))[0]
+    model_name = "sonata"
+    output_filename = (f"{input_filename}_Sonata_{model_name}_"
+                      f"downsample_{downsampling_method}_voxel{voxel_size}m_"
+                      f"segmented_seed_{random_seed}.ply")
+    output_path = f"result_plys/sonata_plys/{output_filename}"
+
     # o3d.visualization.draw_geometries([pcd])
     # o3d.io.write_point_cloud("sem_seg_new_256_0025.ply", pcd)
-    o3d.io.write_point_cloud("/workspace/sonata_plys/sonata_music_preds_512_005_random_seed42.ply", pcd)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    o3d.io.write_point_cloud(output_path, pcd)
