@@ -1,3 +1,18 @@
+# --- OS Specific ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -180,6 +195,24 @@ cython_debug/
 # Ignore directories containing user credentials, local state, and settings.
 # Learn more at https://abstra.io/docs
 .abstra/
+
+# --- IDE & Editors ---
+.idea/
+.vscode/
+.cursor/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.spyderproject
+.spyproject
+.ropeproject
 
 # Visual Studio Code
 #  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
