@@ -1,5 +1,24 @@
 # 3d_semseg_rnd_task
 
+```
+git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
+
+make -f all
+
+cd Pointcept
+docker compose up -d
+
+docker compose exec pointcept_me /bin/bash
+cd third_party/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh && cd ../../../
+
+python mink_inference.py
+python sonata_inference.py
+python kpconv_inference.py
+```
+
+
+
+
 ```bash
 # set -e
 
