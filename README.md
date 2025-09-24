@@ -6,9 +6,18 @@ This repository contains a reproducible pipeline for semantic segmentation of de
 
 Below is an example of segmentation results from the Sonata model:
 
-<div align="center">
-  <img src="./assets/sonata_512_003.gif" alt="Sonata Segmentation Result" width="500"/>
-</div>
+<table>
+  <tr>
+    <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+      <p><strong>Sonata Model Results:</strong></p>
+      <p>This visualization demonstrates the semantic segmentation capabilities of the Sonata model on dense indoor point clouds. The model successfully identifies various semantic classes such as walls, floors, furniture, and other objects with high accuracy.</p>
+      <p><em>Note:</em> The segmentation preserves the original point cloud structure while assigning semantic labels to each point.</p>
+    </td>
+    <td style="width: 50%; text-align: center;">
+      <img src="./assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250"/>
+    </td>
+  </tr>
+</table>
 
 ## Prerequisites
 
