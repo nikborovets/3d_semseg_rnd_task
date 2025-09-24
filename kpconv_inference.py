@@ -25,7 +25,7 @@ from datasets.S3DIS import S3DISCustomBatch
 import random
 
 # Preprocessing imports
-from pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
+from utils.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
 
 
 def parse_args():

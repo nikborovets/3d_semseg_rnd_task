@@ -54,6 +54,7 @@ python kpconv_inference.py \
     --downsampling_method "grid" \
     --voxel_size 0.03 \
     --chunk_size 300000
+
 ```
 
 

@@ -25,8 +25,8 @@ import sonata
 import torch
 import torch.nn as nn
 
-from point_analyzer import analyze_point_dict, get_point_summary
-from pcd_preprocessor import load_and_preprocess_pcd
+from utils.point_analyzer import analyze_point_dict, get_point_summary
+from utils.pcd_preprocessor import load_and_preprocess_pcd
 
 
 def parse_args():
