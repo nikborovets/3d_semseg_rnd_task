@@ -4,10 +4,10 @@ WORKDIR /workspace
 # Аргумент для определения архитектуры CUDA во время сборки.
 # Передается через --build-arg TORCH_CUDA_ARCH_LIST=<arch>
 # Если аргумент не передан, используются значения по умолчанию 7.5 и 8.0
-ARG TORCH_CUDA_ARCH_LIST="7.5 8.0"
-ARG MAX_JOBS=32
+ARG CUDA_ARCH="7.5 8.0 8.6"
+ARG MAX_JOBS=14
 
-ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} \
+ENV TORCH_CUDA_ARCH_LIST=${CUDA_ARCH} \
     TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     MAX_JOBS=${MAX_JOBS}
 

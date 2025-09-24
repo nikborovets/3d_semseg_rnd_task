@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - CUDA_ARCH
     image: pointcept_me:pt1.11-cuda11.3
     working_dir: /workspace
     volumes:

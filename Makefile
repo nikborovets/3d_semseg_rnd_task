@@ -1,4 +1,6 @@
-.PHONY: download_pcd download_weights build_docker all
+.PHONY: all build_docker download_data download_pcd download_weights
+
+CUDA_ARCH := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1)
 
 # make -j all
 
@@ -17,11 +19,14 @@ download_weights:
 	 ./download_and_extract_pcd.sh
 
 build_docker:
-	@echo "Сборка Docker образа..."
+ifeq ($(CUDA_ARCH),)
+	$(error "Не удалось определить архитектуру CUDA. Убедитесь, что nvidia-smi работает и драйверы NVIDIA в порядке.")
+endif
+	@echo "Сборка Docker образа для архитектуры CUDA: ${CUDA_ARCH}"
 	# cd Pointcept && docker compose build
 	cd Pointcept && \
-	 export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1) && \
-	 docker compose build --build-arg TORCH_CUDA_ARCH_LIST=${CUDA_ARCH}
+	 export CUDA_ARCH=${CUDA_ARCH} && \
+	 docker compose build
 
 download_data: download_pcd download_weights
 

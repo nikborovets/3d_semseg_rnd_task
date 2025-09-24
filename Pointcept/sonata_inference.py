@@ -242,7 +242,7 @@ if __name__ == "__main__":
         
         # Загружаем и предобрабатываем PCD файл
         downsampling_method="grid"
-        voxel_size=0.03,  # размер вокселя в метрах (2.5 см)
+        voxel_size=0.03  # размер вокселя в метрах (2.5 см)
 
         point = load_and_preprocess_pcd(
             file_path=pcd_file_path,
