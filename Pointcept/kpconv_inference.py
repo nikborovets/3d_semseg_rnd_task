@@ -335,7 +335,7 @@ def main():
     model_path = "/workspace/kpconv_weights/Light_KPFCNN"
     downsampling_method = "grid"
     voxel_size = 0.03
-    chunk_size = 600000
+    chunk_size = 300000
     
     # Создаем информативное имя выходного файла
     input_filename = os.path.splitext(os.path.basename(pcd_file_path))[0]
