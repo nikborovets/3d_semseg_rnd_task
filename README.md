@@ -2,6 +2,12 @@
 
 This repository contains a reproducible pipeline for semantic segmentation of dense, colored indoor point clouds using state-of-the-art models. It is submitted as a solution for the R&D Assignment Problem from the Artificial Intelligence for Autonomous Systems Laboratory.
 
+### Example Visualization
+
+Below is an example of segmentation results from the Sonata model:
+
+![Sonata Segmentation Result](./img/sonata_512_003.gif)
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your host machine:
