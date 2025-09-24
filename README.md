@@ -1,6 +1,6 @@
 # 3D Semantic Segmentation for Dense Point Clouds
 
-This repository contains a reproducible pipeline for semantic segmentation of dense, colored indoor point clouds using state-of-the-art models. It is submitted as a solution for the R&D Assignment Problem from the Artificial Intelligence for Autonomous Systems Laboratory.
+This repository contains a reproducible pipeline for semantic segmentation of dense, colored indoor point clouds using three state-of-the-art models (**KPConv**, **MinkowskiNet**, and **Sonata**). It is submitted as a solution for the R&D Assignment Problem from the Artificial Intelligence for Autonomous Systems Laboratory.
 
 ### Example Visualization
 

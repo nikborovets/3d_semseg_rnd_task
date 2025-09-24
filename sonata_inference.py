@@ -312,7 +312,9 @@ def main():
         input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
         model_name = "sonata"
         output_filename = (f"{input_filename}_Sonata_{model_name}_"
+                           f"{f'enc_patch_size_{args.enc_patch_size}_' if flash_attn is None else ''}"
                            f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
+                           f"{'flash_attn_' if flash_attn is not None else ''}"
                            f"segmented_seed_{args.seed}.ply")
         output_path = os.path.join(args.output_dir, output_filename)
         
