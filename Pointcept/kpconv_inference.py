@@ -29,22 +29,33 @@ from pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
 
 
 def parse_args():
+    # --- Default Inference Parameters ---
+    pcd_path = '/workspace/pcd_files/down0.01.pcd'
+    model_path = '/workspace/kpconv_weights/Light_KPFCNN'
+    output_dir = 'result_plys/kpconv_plys'
+    downsampling_method = 'grid'
+    voxel_size = 0.03
+    chunk_size = 300000
+    seed = 42
+    device = 'cuda'
+    # ------------------------------------
+
     parser = argparse.ArgumentParser(description="KPConv Semantic Segmentation Inference")
-    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+    parser.add_argument('--pcd_path', type=str, default=pcd_path,
                         help='Path to the input PCD file.')
-    parser.add_argument('--model_path', type=str, default='/workspace/kpconv_weights/Light_KPFCNN',
+    parser.add_argument('--model_path', type=str, default=model_path,
                         help='Path to the directory containing the trained KPConv model.')
-    parser.add_argument('--output_dir', type=str, default='result_plys/kpconv_plys',
+    parser.add_argument('--output_dir', type=str, default=output_dir,
                         help='Directory to save the output PLY file.')
-    parser.add_argument('--downsampling_method', type=str, default='grid', choices=['grid', 'voxel', 'random'],
+    parser.add_argument('--downsampling_method', type=str, default=downsampling_method, choices=['grid', 'voxel', 'random'],
                         help='Downsampling method.')
-    parser.add_argument('--voxel_size', type=float, default=0.03,
+    parser.add_argument('--voxel_size', type=float, default=voxel_size,
                         help='Voxel size for downsampling.')
-    parser.add_argument('--chunk_size', type=int, default=300000,
+    parser.add_argument('--chunk_size', type=int, default=chunk_size,
                         help='Number of points to process in a single chunk.')
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=seed,
                         help='Random seed for reproducibility.')
-    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+    parser.add_argument('--device', type=str, default=device, choices=['cuda', 'cpu'],
                         help='Device to use for inference.')
     return parser.parse_args()
 

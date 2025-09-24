@@ -34,12 +34,26 @@ make -f all
 cd Pointcept
 docker compose up -d
 
-docker compose exec pointcept_me /bin/bash
+# docker compose exec pointcept_me /bin/bash
+docker exec -it pointcept-pointcept_me-1 /bin/bash
 cd third_party/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh && cd ../../../
 
 python mink_inference.py
 python sonata_inference.py
 python kpconv_inference.py
+
+python mink_inference.py \
+    --voxel_size 0.03
+
+python sonata_inference.py \
+    --downsampling_method "grid" \
+    --voxel_size 0.03 \
+    --enc_patch_size 512
+
+python kpconv_inference.py \
+    --downsampling_method "grid" \
+    --voxel_size 0.03 \
+    --chunk_size 300000
 ```
 
 

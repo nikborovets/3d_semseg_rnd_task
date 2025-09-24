@@ -95,18 +95,27 @@ SCANNET_COLOR_MAP = {
 
 
 def parse_args():
+    # --- Default Inference Parameters ---
+    pcd_path = '/workspace/pcd_files/down0.01.pcd'
+    weights_path = 'weights.pth'
+    output_dir = 'result_plys/minkowski_plys'
+    device = 'cuda'
+    voxel_size = 0.03
+    seed = 42
+    # ------------------------------------
+
     parser = argparse.ArgumentParser(description="MinkowskiEngine Semantic Segmentation Inference")
-    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+    parser.add_argument('--pcd_path', type=str, default=pcd_path,
                         help='Path to the input PCD file.')
-    parser.add_argument('--weights_path', type=str, default='weights.pth',
+    parser.add_argument('--weights_path', type=str, default=weights_path,
                         help='Path to the model weights file.')
-    parser.add_argument('--output_dir', type=str, default='result_plys/minkowski_plys',
+    parser.add_argument('--output_dir', type=str, default=output_dir,
                         help='Directory to save the output PLY file.')
-    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+    parser.add_argument('--device', type=str, default=device, choices=['cuda', 'cpu'],
                         help='Device to use for inference.')
-    parser.add_argument('--voxel_size', type=float, default=0.03,
+    parser.add_argument('--voxel_size', type=float, default=voxel_size,
                         help='Voxel size for quantization.')
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=seed,
                         help='Random seed for reproducibility.')
     return parser.parse_args()
 
@@ -140,9 +149,9 @@ def download_assets():
     if not os.path.isfile('weights.pth'):
         print('Downloading weights...')
         urlretrieve("https://bit.ly/2O4dZrz", "weights.pth")
-    if not os.path.isfile("1.ply"):
-        print('Downloading an example pointcloud...')
-        urlretrieve("https://bit.ly/3c2iLhg", "1.ply")
+    # if not os.path.isfile("1.ply"):
+    #     print('Downloading an example pointcloud...')
+    #     urlretrieve("https://bit.ly/3c2iLhg", "1.ply")
 
 
 def load_pcd(file_path):

@@ -30,19 +30,31 @@ from pcd_preprocessor import load_and_preprocess_pcd
 
 
 def parse_args():
+    # --- Default Inference Parameters ---
+    pcd_path = '/workspace/pcd_files/down0.01.pcd'
+    output_dir = 'result_plys/sonata_plys'
+    device = 'cuda'
+    downsampling_method = 'grid'
+    voxel_size = 0.03
+    seed = 42
+    enc_patch_size = 512
+    # ------------------------------------
+
     parser = argparse.ArgumentParser(description="SONATA Semantic Segmentation Inference")
-    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+    parser.add_argument('--pcd_path', type=str, default=pcd_path,
                         help='Path to the input PCD file.')
-    parser.add_argument('--output_dir', type=str, default='result_plys/sonata_plys',
+    parser.add_argument('--output_dir', type=str, default=output_dir,
                         help='Directory to save the output PLY file.')
-    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+    parser.add_argument('--device', type=str, default=device, choices=['cuda', 'cpu'],
                         help='Device to use for inference.')
-    parser.add_argument('--downsampling_method', type=str, default='grid', choices=['grid', 'voxel', 'random'],
+    parser.add_argument('--downsampling_method', type=str, default=downsampling_method, choices=['grid', 'voxel', 'random'],
                         help='Downsampling method.')
-    parser.add_argument('--voxel_size', type=float, default=0.03,
+    parser.add_argument('--voxel_size', type=float, default=voxel_size,
                         help='Voxel size for downsampling.')
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=seed,
                         help='Random seed for reproducibility.')
+    parser.add_argument('--enc_patch_size', type=int, default=enc_patch_size,
+                        help='Encoder patch size for SONATA model.')
     return parser.parse_args()
 
 
@@ -195,7 +207,7 @@ class SegHead(nn.Module):
 
 
 class SonataInferencer:
-    def __init__(self, device):
+    def __init__(self, device, enc_patch_size=512):
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
         print(f"Using device: {self.device}")
         
@@ -204,7 +216,7 @@ class SonataInferencer:
             self.model = sonata.load("sonata", repo_id="facebook/sonata").to(self.device)
         else:
             custom_config = dict(
-                enc_patch_size=[512 for _ in range(5)],
+                enc_patch_size=[enc_patch_size for _ in range(5)],
                 enable_flash=False,
             )
             self.model = sonata.load(
@@ -270,7 +282,7 @@ def main():
     print("=" * 80)
     print(f"Input file: {args.pcd_path}")
     print(f"Model: SONATA")
-    print(f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}")
+    print(f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}, enc_patch_size={args.enc_patch_size}")
 
     try:
         # 1. Load and preprocess data
@@ -284,7 +296,7 @@ def main():
         
         # 2. Initialize model
         print("\n2. Initializing model...")
-        inferencer = SonataInferencer(args.device)
+        inferencer = SonataInferencer(args.device, args.enc_patch_size)
         
         # 3. Perform semantic segmentation
         print("\n3. Performing semantic segmentation...")
