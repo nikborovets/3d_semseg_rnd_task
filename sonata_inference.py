@@ -25,7 +25,6 @@ import sonata
 import torch
 import torch.nn as nn
 
-from utils.point_analyzer import analyze_point_dict, get_point_summary
 from utils.pcd_preprocessor import load_and_preprocess_pcd
 
 
@@ -213,8 +212,10 @@ class SonataInferencer:
         
         print("Loading SONATA model...")
         if flash_attn is not None:
+            print("Using Flash Attention configuration")
             self.model = sonata.load("sonata", repo_id="facebook/sonata").to(self.device)
         else:
+            print(f"Using fallback configuration with enc_patch_size={enc_patch_size}")
             custom_config = dict(
                 enc_patch_size=[enc_patch_size for _ in range(5)],
                 enable_flash=False,
@@ -311,10 +312,15 @@ def main():
         # Create output filename
         input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
         model_name = "sonata"
+
+        # Build filename components based on flash_attn availability
+        enc_patch_part = f"enc_patch_size_{args.enc_patch_size}_" if flash_attn is None else ""
+        flash_attn_part = "flash_attn_" if flash_attn is not None else ""
+
         output_filename = (f"{input_filename}_Sonata_{model_name}_"
-                           f"{f'enc_patch_size_{args.enc_patch_size}_' if flash_attn is None else ''}"
+                           f"{enc_patch_part}"
                            f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
-                           f"{'flash_attn_' if flash_attn is not None else ''}"
+                           f"{flash_attn_part}"
                            f"segmented_seed_{args.seed}.ply")
         output_path = os.path.join(args.output_dir, output_filename)
         
