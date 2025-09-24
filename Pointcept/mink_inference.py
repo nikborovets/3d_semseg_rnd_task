@@ -28,6 +28,7 @@ import argparse
 import random
 import numpy as np
 from urllib.request import urlretrieve
+import time
 
 try:
     import open3d as o3d
@@ -40,46 +41,6 @@ sys.path.append('./third_party/MinkowskiEngine')
 import MinkowskiEngine as ME
 from examples.minkunet import MinkUNet34C
 
-
-def set_random_seed(seed=42):
-    """
-    Устанавливает random seed для воспроизводимости результатов
-    """
-    print(f"🎲 Установка random seed: {seed}")
-    
-    # Python random
-    random.seed(seed)
-    
-    # NumPy
-    np.random.seed(seed)
-    
-    # PyTorch
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Для multi-GPU
-    
-    # Для полной детерминированности (может замедлить работу)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
-    print("✅ Random seed установлен для всех библиотек")
-
-random_seed = 42
-set_random_seed(random_seed)
-
-# Check if the weights and file exist and download
-if not os.path.isfile('weights.pth'):
-    print('Downloading weights...')
-    urlretrieve("https://bit.ly/2O4dZrz", "weights.pth")
-if not os.path.isfile("1.ply"):
-    print('Downloading an example pointcloud...')
-    urlretrieve("https://bit.ly/3c2iLhg", "1.ply")
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--file_name', type=str, default='/workspace/pcd_files/down0.01.pcd')
-parser.add_argument('--weights', type=str, default='weights.pth')
-parser.add_argument('--use_cpu', action='store_true')
-parser.add_argument('--output', type=str, default='result_plys/minkowski_plys/minkowski_segmentation_result.ply')
 
 CLASS_LABELS = ('wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table',
                 'door', 'window', 'bookshelf', 'picture', 'counter', 'desk',
@@ -133,99 +94,173 @@ SCANNET_COLOR_MAP = {
 }
 
 
-def load_file(file_name):
-    pcd = o3d.io.read_point_cloud(file_name)
+def parse_args():
+    parser = argparse.ArgumentParser(description="MinkowskiEngine Semantic Segmentation Inference")
+    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+                        help='Path to the input PCD file.')
+    parser.add_argument('--weights_path', type=str, default='weights.pth',
+                        help='Path to the model weights file.')
+    parser.add_argument('--output_dir', type=str, default='result_plys/minkowski_plys',
+                        help='Directory to save the output PLY file.')
+    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+                        help='Device to use for inference.')
+    parser.add_argument('--voxel_size', type=float, default=0.03,
+                        help='Voxel size for quantization.')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility.')
+    return parser.parse_args()
+
+
+def set_random_seed(seed=42):
+    """
+    Устанавливает random seed для воспроизводимости результатов
+    """
+    print(f"🎲 Установка random seed: {seed}")
+    
+    # Python random
+    random.seed(seed)
+    
+    # NumPy
+    np.random.seed(seed)
+    
+    # PyTorch
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # Для multi-GPU
+    
+    # Для полной детерминированности (может замедлить работу)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
+    print("✅ Random seed установлен для всех библиотек")
+
+
+def download_assets():
+    # Check if the weights and file exist and download
+    if not os.path.isfile('weights.pth'):
+        print('Downloading weights...')
+        urlretrieve("https://bit.ly/2O4dZrz", "weights.pth")
+    if not os.path.isfile("1.ply"):
+        print('Downloading an example pointcloud...')
+        urlretrieve("https://bit.ly/3c2iLhg", "1.ply")
+
+
+def load_pcd(file_path):
+    print(f"Загружаем облако точек из {file_path}")
+    pcd = o3d.io.read_point_cloud(file_path)
     coords = np.array(pcd.points)
-    colors = np.array(pcd.colors)
+    colors = np.array(pcd.colors) if pcd.has_colors() else np.ones_like(coords) * 0.5
     return coords, colors, pcd
 
 
-def normalize_color(color: torch.Tensor, is_color_in_range_0_255: bool = False) -> torch.Tensor:
-    r"""
-    Convert color in range [0, 1] to [-0.5, 0.5]. If the color is in range [0,
-    255], use the argument `is_color_in_range_0_255=True`.
+def normalize_color(colors):
+    """Нормализует цвета в диапазон [-0.5, 0.5]"""
+    return (torch.from_numpy(colors).float() - 0.5)
 
-    `color` (torch.Tensor): Nx3 color feature matrix
-    `is_color_in_range_0_255` (bool): If the color is in range [0, 255] not [0, 1], normalize the color to [0, 1].
-    """
-    if is_color_in_range_0_255:
-        color /= 255
-    color -= 0.5
-    return color.float()
+
+class MinkowskiInferencer:
+    def __init__(self, weights_path, device):
+        self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
+        print(f"Используем устройство: {self.device}")
+        
+        self.model = MinkUNet34C(3, 20).to(self.device)
+        print("Загружаем веса модели...")
+        model_dict = torch.load(weights_path, map_location=self.device)
+        self.model.load_state_dict(model_dict)
+        self.model.eval()
+        print("Модель успешно загружена!")
+
+    def predict(self, coords, colors, voxel_size):
+        print("Выполняем инференс...")
+        with torch.no_grad():
+            # Подготовка входных данных
+            in_field = ME.TensorField(
+                features=normalize_color(colors),
+                coordinates=ME.utils.batched_coordinates([coords / voxel_size], dtype=torch.float32),
+                quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE,
+                minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
+                device=self.device,
+            )
+            sinput = in_field.sparse()
+
+            # Прямой проход
+            start_time = time.time()
+            soutput = self.model(sinput)
+            inference_time = time.time() - start_time
+            print(f"  Время инференса: {inference_time:.2f} секунд")
+
+            logits = soutput.F
+            _, pred = logits.max(1)
+            
+            voxel_coords = soutput.C[:, 1:].cpu().numpy() * voxel_size
+            predictions = pred.cpu().numpy()
+
+        print(f"Обработано {len(voxel_coords)} вокселей (из {len(coords)} точек)")
+        return voxel_coords, predictions
+
+
+def main():
+    args = parse_args()
+    
+    set_random_seed(args.seed)
+    
+    print("=" * 80)
+    print("MINKOWSKI ENGINE INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
+    print("=" * 80)
+    print(f"Входной файл: {args.pcd_path}")
+    print(f"Модель: MinkUNet34C (веса: {args.weights_path})")
+    print(f"Параметры: voxel_size={args.voxel_size}m, seed={args.seed}")
+    
+    download_assets()
+    
+    try:
+        # 1. Загрузка данных
+        coords, colors, _ = load_pcd(args.pcd_path)
+        
+        # 2. Инициализация модели
+        inferencer = MinkowskiInferencer(args.weights_path, args.device)
+        
+        # 3. Выполнение инференса
+        voxel_coords, predictions = inferencer.predict(coords, colors, args.voxel_size)
+        
+        # 4. Визуализация и сохранение
+        print("\n4. Создаем цветное облако точек...")
+        pred_pcd = o3d.geometry.PointCloud()
+        pred_colors = np.array([SCANNET_COLOR_MAP[VALID_CLASS_IDS[l]] for l in predictions])
+        
+        pred_pcd.points = o3d.utility.Vector3dVector(voxel_coords)
+        pred_pcd.colors = o3d.utility.Vector3dVector(pred_colors / 255)
+        
+        # Создаем имя выходного файла
+        input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
+        output_filename = (f"{input_filename}_Minkowski_MinkUNet34C_"
+                           f"voxel{args.voxel_size}m_"
+                           f"segmented_seed_{args.seed}.ply")
+        output_path = os.path.join(args.output_dir, output_filename)
+        
+        print(f"\n5. Сохраняем результат в {output_path}...")
+        os.makedirs(args.output_dir, exist_ok=True)
+        o3d.io.write_point_cloud(output_path, pred_pcd)
+        
+        print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")
+        print(f"   Обработано точек: {len(voxel_coords)}")
+        print(f"   Результат сохранен: {output_path}")
+        print(f"   Найдено классов: {len(np.unique(predictions))}")
+        
+        # Статистика по классам
+        unique_classes, counts = np.unique(predictions, return_counts=True)
+        print("\nСтатистика классов:")
+        for class_id, count in zip(unique_classes, counts):
+            class_name = CLASS_LABELS[class_id]
+            percentage = (count / len(predictions)) * 100
+            print(f"  {class_name}: {count} voxels ({percentage:.1f}%)")
+
+    except Exception as e:
+        print(f"\n❌ ОШИБКА: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == '__main__':
-    config = parser.parse_args()
-    device = torch.device('cuda' if (
-        torch.cuda.is_available() and not config.use_cpu) else 'cpu')
-    print(f"Using {device}")
-    # Define a model and load the weights
-    model = MinkUNet34C(3, 20).to(device)
-    model_dict = torch.load(config.weights)
-    model.load_state_dict(model_dict)
-    model.eval()
-
-    coords, colors, pcd = load_file(config.file_name)
-    # Measure time
-    with torch.no_grad():
-        voxel_size = 0.03  # Изменено на 5см
-        # Feed-forward pass and get the prediction
-        in_field = ME.TensorField(
-            features=normalize_color(torch.from_numpy(colors)),
-            coordinates=ME.utils.batched_coordinates([coords / voxel_size], dtype=torch.float32),
-            quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_AVERAGE,
-            minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
-            device=device,
-        )
-        # Convert to a sparse tensor
-        sinput = in_field.sparse()
-        # Output sparse tensor
-        soutput = model(sinput)
-        # # get the prediction on the input tensor field
-        # out_field = soutput.slice(in_field)
-        # logits = out_field.F
-        # НЕ используем slice() - работаем напрямую с вокселями!
-        # out_field = soutput.slice(in_field)  # ЗАКОММЕНТИРОВАНО!
-        logits = soutput.F  # Логиты только для вокселей
-        
-        # Получаем координаты вокселей
-        voxel_coords = soutput.C[:, 1:].cpu().numpy() * voxel_size  # Убираем batch dimension и масштабируем обратно
-
-    _, pred = logits.max(1)
-    pred = pred.cpu().numpy()
-
-    # Create a point cloud file
-    pred_pcd = o3d.geometry.PointCloud()
-    # Map color
-    colors = np.array([SCANNET_COLOR_MAP[VALID_CLASS_IDS[l]] for l in pred])
-    # pred_pcd.points = o3d.utility.Vector3dVector(coords)
-    pred_pcd.points = o3d.utility.Vector3dVector(voxel_coords)  # Используем координаты вокселей!
-    pred_pcd.colors = o3d.utility.Vector3dVector(colors / 255)
-    pred_pcd.estimate_normals()
-
-    # Move the original point cloud
-    pcd.points = o3d.utility.Vector3dVector(
-        np.array(pcd.points) + np.array([0, 5, 0]))
-
-    # Save the prediction to PLY file
-    # Создаем динамическое имя выходного файла
-    input_filename = os.path.splitext(os.path.basename(config.file_name))[0]
-    model_name = "MinkUNet34C"
-    downsampling_method = "voxel"  # Minkowski использует voxel-based подход
-    output_filename = (f"{input_filename}_Minkowski_{model_name}_"
-                      f"downsample_{downsampling_method}_voxel{voxel_size}m_"
-                      f"segmented_seed_{random_seed}.ply")
-    config.output = f"result_plys/minkowski_plys/{output_filename}"
-    os.makedirs(os.path.dirname(config.output), exist_ok=True)
-    o3d.io.write_point_cloud(config.output, pred_pcd)
-    print(f"Segmentation result saved to: {config.output}")
-    # print(f"Processed {len(coords)} points")
-    print(f"Processed {len(voxel_coords)} voxels (downsampled from {len(coords)} points)")
-    
-    # Print class statistics
-    unique_classes, counts = np.unique(pred, return_counts=True)
-    print(f"\nClass statistics:")
-    for class_id, count in zip(unique_classes, counts):
-        class_name = CLASS_LABELS[class_id]
-        percentage = (count / len(pred)) * 100
-        print(f"  {class_name}: {count} points ({percentage:.1f}%)")
+    main()

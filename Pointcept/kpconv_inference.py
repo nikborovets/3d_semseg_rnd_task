@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import open3d as o3d
 from torch.nn.functional import softmax
+import argparse
 
 # Добавляем пути к модулям
 sys.path.append('./third_party/KPConv-PyTorch')
@@ -25,6 +26,27 @@ import random
 
 # Импорты предобработки
 from pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="KPConv Semantic Segmentation Inference")
+    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+                        help='Path to the input PCD file.')
+    parser.add_argument('--model_path', type=str, default='/workspace/kpconv_weights/Light_KPFCNN',
+                        help='Path to the directory containing the trained KPConv model.')
+    parser.add_argument('--output_dir', type=str, default='result_plys/kpconv_plys',
+                        help='Directory to save the output PLY file.')
+    parser.add_argument('--downsampling_method', type=str, default='grid', choices=['grid', 'voxel', 'random'],
+                        help='Downsampling method.')
+    parser.add_argument('--voxel_size', type=float, default=0.03,
+                        help='Voxel size for downsampling.')
+    parser.add_argument('--chunk_size', type=int, default=300000,
+                        help='Number of points to process in a single chunk.')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility.')
+    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+                        help='Device to use for inference.')
+    return parser.parse_args()
 
 
 def set_random_seed(seed=42):
@@ -231,6 +253,8 @@ class KPConvInferencer:
         num_points = len(points)
         print(f"Общее количество точек: {num_points}")
         
+        total_inference_time = 0.0
+        
         # Если точек слишком много, разбиваем на части
         if num_points > chunk_size:
             print(f"Разбиваем на части по {chunk_size} точек...")
@@ -249,24 +273,19 @@ class KPConvInferencer:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 
-                chunk_pred, chunk_probs = self._predict_chunk(chunk_points, chunk_features)
+                chunk_pred, chunk_probs, chunk_time = self._predict_chunk(chunk_points, chunk_features)
                 all_predictions.append(chunk_pred)
                 all_probs.append(chunk_probs)
+                total_inference_time += chunk_time
             
             predictions = np.concatenate(all_predictions)
             probs = np.concatenate(all_probs)
         else:
-            predictions, probs = self._predict_chunk(points, features)
+            predictions, probs, inference_time = self._predict_chunk(points, features)
+            total_inference_time = inference_time
         
         print(f"Предсказания получены для {len(predictions)} точек")
-        
-        # Статистика предсказаний
-        unique, counts = np.unique(predictions, return_counts=True)
-        print("Статистика классов:")
-        for class_id, count in zip(unique, counts):
-            class_name = self.dataset.label_to_names.get(class_id, f"unknown_{class_id}")
-            percentage = count / len(predictions) * 100
-            print(f"  {class_name}: {count} точек ({percentage:.1f}%)")
+        print(f"Общее время инференса: {total_inference_time:.2f} секунд")
         
         return predictions, probs
     
@@ -291,7 +310,7 @@ class KPConvInferencer:
         probs = softmax(outputs, dim=1).cpu().numpy()
         predictions = np.argmax(probs, axis=1)
         
-        return predictions, probs
+        return predictions, probs, inference_time
     
     def colorize_predictions(self, points, predictions):
         """
@@ -323,31 +342,25 @@ class KPConvInferencer:
 
 def main():
     """Основная функция для демонстрации инференса"""
-    random_seed = 42
-    set_random_seed(random_seed)
+    args = parse_args()
+    
+    set_random_seed(args.seed)
 
     print("=" * 80)
     print("KPCONV INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
     print("=" * 80)
     
-    # Параметры предобработки
-    pcd_file_path = "/workspace/pcd_files/down0.01.pcd"
-    model_path = "/workspace/kpconv_weights/Light_KPFCNN"
-    downsampling_method = "grid"
-    voxel_size = 0.03
-    chunk_size = 300000
-    
     # Создаем информативное имя выходного файла
-    input_filename = os.path.splitext(os.path.basename(pcd_file_path))[0]
-    model_name = os.path.basename(model_path)
+    input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
+    model_name = os.path.basename(args.model_path)
     output_filename = (f"{input_filename}_KPConv_{model_name}_"
-                      f"downsample_{downsampling_method}_voxel{voxel_size}m_"
-                      f"chunk{chunk_size}_segmented_seed_{random_seed}.ply")
-    output_path = f"result_plys/kpconv_plys/{output_filename}"
+                      f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
+                      f"chunk{args.chunk_size}_segmented_seed_{args.seed}.ply")
+    output_path = os.path.join(args.output_dir, output_filename)
     
-    print(f"Входной файл: {pcd_file_path}")
-    print(f"Модель: {model_name}")
-    print(f"Параметры: downsampling={downsampling_method}, voxel_size={voxel_size}m")
+    print(f"Входной файл: {args.pcd_path}")
+    print(f"Модель: {model_name} (из {args.model_path})")
+    print(f"Параметры: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, chunk_size={args.chunk_size}, device={args.device}")
     print(f"Выходной файл: {output_path}")
     
     try:
@@ -362,9 +375,9 @@ def main():
         # 1. Загружаем и предобрабатываем данные
         print("\n1. Загружаем и предобрабатываем PCD файл...")
         point_dict = load_and_preprocess_pcd(
-            file_path=pcd_file_path,
-            downsampling_method=downsampling_method,
-            voxel_size=voxel_size,
+            file_path=args.pcd_path,
+            downsampling_method=args.downsampling_method,
+            voxel_size=args.voxel_size,
             add_segmentation=False
         )
         
@@ -378,15 +391,18 @@ def main():
         print("\n3. Инициализируем модель...")
         # Пробуем CUDA, если не получается - используем CPU
         try:
-            inferencer = KPConvInferencer(model_path, device='cuda')
+            # Пытаемся использовать устройство, указанное в аргументах
+            inferencer = KPConvInferencer(args.model_path, device=args.device)
             print("\n4. Выполняем семантическую сегментацию...")
-            predictions, probs = inferencer.predict(points, features, chunk_size=chunk_size)
+            predictions, probs = inferencer.predict(points, features, chunk_size=args.chunk_size)
         except RuntimeError as e:
-            if "CUDA out of memory." in str(e):
+            # Если на CUDA не хватило памяти и был выбран 'cuda', переключаемся на 'cpu'
+            if "CUDA out of memory." in str(e) and args.device == 'cuda':
                 print("   GPU память недостаточна, переключаемся на CPU...")
-                inferencer = KPConvInferencer(model_path, device='cpu')
-                print("\n4. Выполняем семантическую сегментацию...")
-                predictions, probs = inferencer.predict(points, features, chunk_size=chunk_size)
+                torch.cuda.empty_cache() # Очищаем кэш перед переключением
+                inferencer = KPConvInferencer(args.model_path, device='cpu')
+                print("\n4. Выполняем семантическую сегментацию на CPU...")
+                predictions, probs = inferencer.predict(points, features, chunk_size=args.chunk_size)
             else:
                 raise e
         
@@ -403,13 +419,14 @@ def main():
         print(f"   Обработано точек: {len(points)}")
         print(f"   Результат сохранен: {output_path}")
         print(f"   Найдено классов: {len(np.unique(predictions))}")
-        
-        # Показываем легенду цветов
-        print("\n📋 ЛЕГЕНДА ЦВЕТОВ:")
-        for class_id, color in enumerate(inferencer.class_colors):
+
+        # Статистика по классам
+        print("\nСтатистика классов:")
+        unique, counts = np.unique(predictions, return_counts=True)
+        for class_id, count in zip(unique, counts):
             class_name = inferencer.dataset.label_to_names.get(class_id, f"unknown_{class_id}")
-            rgb_255 = (color * 255).astype(int)
-            print(f"   {class_name}: RGB{tuple(rgb_255)}")
+            percentage = count / len(predictions) * 100
+            print(f"  {class_name}: {count} voxels ({percentage:.1f}%)")
         
         return True
         

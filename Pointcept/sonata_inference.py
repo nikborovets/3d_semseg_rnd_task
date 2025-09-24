@@ -18,6 +18,8 @@ import os
 import random
 import numpy as np
 import open3d as o3d
+import argparse
+import time
 sys.path.append('./third_party/sonata')
 import sonata
 import torch
@@ -25,6 +27,23 @@ import torch.nn as nn
 
 from point_analyzer import analyze_point_dict, get_point_summary
 from pcd_preprocessor import load_and_preprocess_pcd
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="SONATA Semantic Segmentation Inference")
+    parser.add_argument('--pcd_path', type=str, default='/workspace/pcd_files/down0.01.pcd',
+                        help='Path to the input PCD file.')
+    parser.add_argument('--output_dir', type=str, default='result_plys/sonata_plys',
+                        help='Directory to save the output PLY file.')
+    parser.add_argument('--device', type=str, default='cuda', choices=['cuda', 'cpu'],
+                        help='Device to use for inference.')
+    parser.add_argument('--downsampling_method', type=str, default='grid', choices=['grid', 'voxel', 'random'],
+                        help='Downsampling method.')
+    parser.add_argument('--voxel_size', type=float, default=0.03,
+                        help='Voxel size for downsampling.')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility.')
+    return parser.parse_args()
 
 
 def set_random_seed(seed=42):
@@ -57,8 +76,7 @@ def set_random_seed(seed=42):
     
     print("✅ Random seed установлен для всех библиотек")
 
-random_seed = 42
-set_random_seed(random_seed)
+
 # try:
 #     import flash_attn
 # except ImportError:
@@ -176,139 +194,139 @@ class SegHead(nn.Module):
         return self.seg_head(x)
 
 
-if __name__ == "__main__":
-    # set random seed
-    # sonata.utils.set_seed(24525867)
-    # Load model
-    if flash_attn is not None:
-        model = sonata.load("sonata", repo_id="facebook/sonata").cuda()
-    else:
-        custom_config = dict(
-            enc_patch_size=[512 for _ in range(5)],  # reduce patch size if necessary
-            enable_flash=False,
-        )
-        model = sonata.load(
-            "sonata", repo_id="facebook/sonata", custom_config=custom_config
-        ).cuda()
-    # Load linear probing seg head
-    ckpt = sonata.load(
-        "sonata_linear_prob_head_sc", repo_id="facebook/sonata", ckpt_only=True
-    )
-    seg_head = SegHead(**ckpt["config"]).cuda()
-    seg_head.load_state_dict(ckpt["state_dict"])
-    # Load default data transform pipeline
-    transform = sonata.transform.default()
-    # Load data - выбор между sample1 и собственным PCD файлом
-    use_sample_data = False  # Установите True для использования sample1, False для собственного PCD
-    
-    if use_sample_data:
-        point = sonata.data.load("sample1")
-        print("keys:", point.keys())
+class SonataInferencer:
+    def __init__(self, device):
+        self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
+        print(f"Используем устройство: {self.device}")
         
-        analyze_point_dict(point)
-        
-        if "color" not in point:
-            point["color"] = np.ones((len(point["coord"]), 3)) * 0.5
-        
-        if "normal" not in point:
-            print("Computing normals for sample1_dino...")
-            pcd_temp = o3d.geometry.PointCloud()
-            pcd_temp.points = o3d.utility.Vector3dVector(point["coord"])
-            pcd_temp.estimate_normals()
-            point["normal"] = np.array(pcd_temp.normals)
-        
-        if "segment20" not in point and "segment200" not in point:
-            print("Adding dummy segmentation for sample1_dino")
-            point["segment"] = np.zeros(len(point["coord"]), dtype=np.int32)
+        print("Загружаем модель SONATA...")
+        if flash_attn is not None:
+            self.model = sonata.load("sonata", repo_id="facebook/sonata").to(self.device)
         else:
-            # Обрабатываем существующую сегментацию
-            if "segment200" in point:
-                point.pop("segment200")
-            if "segment20" in point:
-                segment = point.pop("segment20")
-                point["segment"] = segment
-        # # Load data
-        # point.pop("segment200")
-        # segment = point.pop("segment20")
-        # point["segment"] = segment  # two kinds of segment exist in ScanNet, only use one
-
-        # # Детальный анализ всех параметров словаря point
-        # # analyze_point_dict(point)
-        # # print(get_point_summary(point))
-    else:
-        # Используем собственный PCD файл с предобработкой
-        pcd_file_path = "/workspace/pcd_files/down0.01.pcd"
-        # pcd_file_path = "/workspace/pcd_files/music_room.pcd"
+            custom_config = dict(
+                enc_patch_size=[512 for _ in range(5)],
+                enable_flash=False,
+            )
+            self.model = sonata.load(
+                "sonata", repo_id="facebook/sonata", custom_config=custom_config
+            ).to(self.device)
         
-        # Загружаем и предобрабатываем PCD файл
-        downsampling_method="grid"
-        voxel_size=0.03  # размер вокселя в метрах (2.5 см)
+        print("Загружаем голову сегментации...")
+        ckpt = sonata.load(
+            "sonata_linear_prob_head_sc", repo_id="facebook/sonata", ckpt_only=True
+        )
+        self.seg_head = SegHead(**ckpt["config"]).to(self.device)
+        self.seg_head.load_state_dict(ckpt["state_dict"])
+        
+        self.transform = sonata.transform.default()
+        
+        self.model.eval()
+        self.seg_head.eval()
+        print("Модель и голова сегментации успешно загружены!")
 
-        point = load_and_preprocess_pcd(
-            file_path=pcd_file_path,
-            # downsampling_method="voxel",  # "voxel" или "random" или "grid"
-            downsampling_method=downsampling_method,  # "voxel" или "random" или "grid"
-            voxel_size=voxel_size,  # размер вокселя в метрах (2.5 см)
-            target_points=193982,  # для random downsampling
+    def predict(self, point_dict):
+        print("Выполняем инференс...")
+        
+        # Очистка памяти
+        torch.cuda.empty_cache()
+        gc.collect()
+        
+        start_time = time.time()
+        
+        point = self.transform(point_dict)
+        
+        with torch.inference_mode():
+            for key in point.keys():
+                if isinstance(point[key], torch.Tensor):
+                    point[key] = point[key].to(self.device, non_blocking=True)
+            
+            point = self.model(point)
+            while "pooling_parent" in point.keys():
+                assert "pooling_inverse" in point.keys()
+                parent = point.pop("pooling_parent")
+                inverse = point.pop("pooling_inverse")
+                parent.feat = torch.cat([parent.feat, point.feat[inverse]], dim=-1)
+                point = parent
+            
+            feat = point.feat
+            seg_logits = self.seg_head(feat)
+            predictions = seg_logits.argmax(dim=-1).data.cpu().numpy()
+        
+        inference_time = time.time() - start_time
+        print(f"  Время инференса: {inference_time:.2f} секунд")
+        
+        coords = point.coord.cpu().detach().numpy()
+        
+        return coords, predictions
+
+
+def main():
+    args = parse_args()
+    
+    set_random_seed(args.seed)
+    
+    print("=" * 80)
+    print("SONATA INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
+    print("=" * 80)
+    print(f"Входной файл: {args.pcd_path}")
+    print(f"Модель: SONATA")
+    print(f"Параметры: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}")
+
+    try:
+        # 1. Загрузка и предобработка данных
+        print("\n1. Загружаем и предобрабатываем PCD файл...")
+        point_dict = load_and_preprocess_pcd(
+            file_path=args.pcd_path,
+            downsampling_method=args.downsampling_method,
+            voxel_size=args.voxel_size,
             add_segmentation=True
         )
         
-        # Анализируем предобработанные данные
-        # analyze_point_dict(point)
-        # for key, value in get_point_summary(point).items():
-        #     print("{0}: {1}".format(key,value))
-    
-    gc.collect()
-    # original_coord = point["coord"].copy()
-    point = transform(point)
-    gc.collect()
-    # Inference
-    model.eval()
-    seg_head.eval()
-    with torch.inference_mode():
-        for key in point.keys():
-            if isinstance(point[key], torch.Tensor):
-                point[key] = point[key].cuda(non_blocking=True)
-        # model forward:
-        point = model(point)
-        while "pooling_parent" in point.keys():
-            assert "pooling_inverse" in point.keys()
-            parent = point.pop("pooling_parent")
-            inverse = point.pop("pooling_inverse")
-            parent.feat = torch.cat([parent.feat, point.feat[inverse]], dim=-1)
-            point = parent
-        feat = point.feat
-        seg_logits = seg_head(feat)
-        pred = seg_logits.argmax(dim=-1).data.cpu().numpy()
-        color = np.array(CLASS_COLOR_20)[pred]
+        # 2. Инициализация модели
+        print("\n2. Инициализируем модель...")
+        inferencer = SonataInferencer(args.device)
+        
+        # 3. Выполнение инференса
+        print("\n3. Выполняем семантическую сегментацию...")
+        coords, predictions = inferencer.predict(point_dict)
+        
+        # 4. Визуализация и сохранение
+        print("\n4. Создаем цветное облако точек...")
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(coords)
+        pcd.colors = o3d.utility.Vector3dVector(np.array(CLASS_COLOR_20)[predictions] / 255)
+        
+        # Создаем имя выходного файла
+        input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
+        model_name = "sonata"
+        output_filename = (f"{input_filename}_Sonata_{model_name}_"
+                           f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
+                           f"segmented_seed_{args.seed}.ply")
+        output_path = os.path.join(args.output_dir, output_filename)
+        
+        print(f"\n5. Сохраняем результат в {output_path}...")
+        os.makedirs(args.output_dir, exist_ok=True)
+        o3d.io.write_point_cloud(output_path, pcd)
+        
+        print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")
+        print(f"   Обработано точек: {len(coords)}")
+        print(f"   Результат сохранен: {output_path}")
+        print(f"   Найдено классов: {len(np.unique(predictions))}")
 
-    # Статистика по классам
-    print(f"\n--- Статистика классов ---")
-    unique_classes, counts = np.unique(pred, return_counts=True)
-    for class_id, count in zip(unique_classes, counts):
-        if class_id < len(CLASS_LABELS_20):
-            class_name = CLASS_LABELS_20[class_id]
-        else:
-            class_name = "unknown"
-        percentage = (count / len(pred)) * 100
-        print(f"   {class_name}: {count} точек ({percentage:.1f}%)")
+        # Статистика по классам
+        print(f"\n--- Статистика классов ---")
+        unique_classes, counts = np.unique(predictions, return_counts=True)
+        for class_id, count in zip(unique_classes, counts):
+            class_name = CLASS_LABELS_20[class_id] if class_id < len(CLASS_LABELS_20) else "unknown"
+            percentage = (count / len(predictions)) * 100
+            print(f"   {class_name}: {count} voxels ({percentage:.1f}%)")
 
-    del seg_logits, pred
-    gc.collect()
-    # Visualize
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(point.coord.cpu().detach().numpy())
-    pcd.colors = o3d.utility.Vector3dVector(color / 255)
+    except Exception as e:
+        print(f"\n❌ ОШИБКА: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
-    # Создаем динамическое имя выходного файла
-    input_filename = os.path.splitext(os.path.basename(pcd_file_path))[0]
-    model_name = "sonata"
-    output_filename = (f"{input_filename}_Sonata_{model_name}_"
-                      f"downsample_{downsampling_method}_voxel{voxel_size}m_"
-                      f"segmented_seed_{random_seed}.ply")
-    output_path = f"result_plys/sonata_plys/{output_filename}"
 
-    # o3d.visualization.draw_geometries([pcd])
-    # o3d.io.write_point_cloud("sem_seg_new_256_0025.ply", pcd)
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    o3d.io.write_point_cloud(output_path, pcd)
+if __name__ == "__main__":
+    main()
