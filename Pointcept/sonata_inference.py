@@ -48,9 +48,9 @@ def parse_args():
 
 def set_random_seed(seed=42):
     """
-    Устанавливает random seed для воспроизводимости результатов
+    Sets the random seed for reproducibility
     """
-    print(f"🎲 Установка random seed: {seed}")
+    print(f"🎲 Setting random seed: {seed}")
     
     # Python random
     random.seed(seed)
@@ -61,20 +61,20 @@ def set_random_seed(seed=42):
     # PyTorch
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Для multi-GPU
+    torch.cuda.manual_seed_all(seed)  # For multi-GPU
     
-    # Для полной детерминированности (может замедлить работу)
+    # For full determinism (can slow down training)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    # SONATA также использует random seed
+    # SONATA also uses a random seed
     try:
         sonata.utils.set_seed(seed)
-        print("✅ SONATA seed установлен")
+        print("✅ SONATA seed set")
     except:
-        print("⚠️  SONATA seed не установлен (модуль не найден)")
+        print("⚠️  SONATA seed not set (module not found)")
     
-    print("✅ Random seed установлен для всех библиотек")
+    print("✅ Random seed set for all libraries")
 
 
 # try:
@@ -86,7 +86,7 @@ flash_attn = None
 
 import gc
 
-# Очистка памяти перед началом
+# Clear memory before starting
 torch.cuda.empty_cache()
 gc.collect()
 print("Memory cleared")
@@ -197,9 +197,9 @@ class SegHead(nn.Module):
 class SonataInferencer:
     def __init__(self, device):
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
-        print(f"Используем устройство: {self.device}")
+        print(f"Using device: {self.device}")
         
-        print("Загружаем модель SONATA...")
+        print("Loading SONATA model...")
         if flash_attn is not None:
             self.model = sonata.load("sonata", repo_id="facebook/sonata").to(self.device)
         else:
@@ -211,7 +211,7 @@ class SonataInferencer:
                 "sonata", repo_id="facebook/sonata", custom_config=custom_config
             ).to(self.device)
         
-        print("Загружаем голову сегментации...")
+        print("Loading segmentation head...")
         ckpt = sonata.load(
             "sonata_linear_prob_head_sc", repo_id="facebook/sonata", ckpt_only=True
         )
@@ -222,12 +222,12 @@ class SonataInferencer:
         
         self.model.eval()
         self.seg_head.eval()
-        print("Модель и голова сегментации успешно загружены!")
+        print("Model and segmentation head loaded successfully!")
 
     def predict(self, point_dict):
-        print("Выполняем инференс...")
+        print("Performing inference...")
         
-        # Очистка памяти
+        # Clear memory
         torch.cuda.empty_cache()
         gc.collect()
         
@@ -253,7 +253,7 @@ class SonataInferencer:
             predictions = seg_logits.argmax(dim=-1).data.cpu().numpy()
         
         inference_time = time.time() - start_time
-        print(f"  Время инференса: {inference_time:.2f} секунд")
+        print(f"  Inference time: {inference_time:.2f} seconds")
         
         coords = point.coord.cpu().detach().numpy()
         
@@ -266,15 +266,15 @@ def main():
     set_random_seed(args.seed)
     
     print("=" * 80)
-    print("SONATA INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
+    print("SONATA INFERENCE - SEMANTIC SEGMENTATION")
     print("=" * 80)
-    print(f"Входной файл: {args.pcd_path}")
-    print(f"Модель: SONATA")
-    print(f"Параметры: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}")
+    print(f"Input file: {args.pcd_path}")
+    print(f"Model: SONATA")
+    print(f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}")
 
     try:
-        # 1. Загрузка и предобработка данных
-        print("\n1. Загружаем и предобрабатываем PCD файл...")
+        # 1. Load and preprocess data
+        print("\n1. Loading and preprocessing PCD file...")
         point_dict = load_and_preprocess_pcd(
             file_path=args.pcd_path,
             downsampling_method=args.downsampling_method,
@@ -282,21 +282,21 @@ def main():
             add_segmentation=True
         )
         
-        # 2. Инициализация модели
-        print("\n2. Инициализируем модель...")
+        # 2. Initialize model
+        print("\n2. Initializing model...")
         inferencer = SonataInferencer(args.device)
         
-        # 3. Выполнение инференса
-        print("\n3. Выполняем семантическую сегментацию...")
+        # 3. Perform semantic segmentation
+        print("\n3. Performing semantic segmentation...")
         coords, predictions = inferencer.predict(point_dict)
         
-        # 4. Визуализация и сохранение
-        print("\n4. Создаем цветное облако точек...")
+        # 4. Visualize and save
+        print("\n4. Creating colored point cloud...")
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(coords)
         pcd.colors = o3d.utility.Vector3dVector(np.array(CLASS_COLOR_20)[predictions] / 255)
         
-        # Создаем имя выходного файла
+        # Create output filename
         input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
         model_name = "sonata"
         output_filename = (f"{input_filename}_Sonata_{model_name}_"
@@ -304,25 +304,25 @@ def main():
                            f"segmented_seed_{args.seed}.ply")
         output_path = os.path.join(args.output_dir, output_filename)
         
-        print(f"\n5. Сохраняем результат в {output_path}...")
+        print(f"\n5. Saving result to {output_path}...")
         os.makedirs(args.output_dir, exist_ok=True)
         o3d.io.write_point_cloud(output_path, pcd)
         
-        print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")
-        print(f"   Обработано точек: {len(coords)}")
-        print(f"   Результат сохранен: {output_path}")
-        print(f"   Найдено классов: {len(np.unique(predictions))}")
+        print("\n✅ INFERENCE COMPLETED SUCCESSFULLY!")
+        print(f"   Processed points: {len(coords)}")
+        print(f"   Result saved to: {output_path}")
+        print(f"   Classes found: {len(np.unique(predictions))}")
 
-        # Статистика по классам
-        print(f"\n--- Статистика классов ---")
+        # Class statistics
+        print(f"\n--- Class Statistics ---")
         unique_classes, counts = np.unique(predictions, return_counts=True)
         for class_id, count in zip(unique_classes, counts):
             class_name = CLASS_LABELS_20[class_id] if class_id < len(CLASS_LABELS_20) else "unknown"
             percentage = (count / len(predictions)) * 100
-            print(f"   {class_name}: {count} voxels ({percentage:.1f}%)")
+            print(f"   {class_name}: {count} points ({percentage:.1f}%)")
 
     except Exception as e:
-        print(f"\n❌ ОШИБКА: {e}")
+        print(f"\n❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

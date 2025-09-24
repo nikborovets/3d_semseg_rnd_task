@@ -113,9 +113,9 @@ def parse_args():
 
 def set_random_seed(seed=42):
     """
-    Устанавливает random seed для воспроизводимости результатов
+    Sets the random seed for reproducibility
     """
-    print(f"🎲 Установка random seed: {seed}")
+    print(f"🎲 Setting random seed: {seed}")
     
     # Python random
     random.seed(seed)
@@ -126,13 +126,13 @@ def set_random_seed(seed=42):
     # PyTorch
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Для multi-GPU
+    torch.cuda.manual_seed_all(seed)  # For multi-GPU
     
-    # Для полной детерминированности (может замедлить работу)
+    # For full determinism (can slow down training)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    print("✅ Random seed установлен для всех библиотек")
+    print("✅ Random seed set for all libraries")
 
 
 def download_assets():
@@ -146,7 +146,7 @@ def download_assets():
 
 
 def load_pcd(file_path):
-    print(f"Загружаем облако точек из {file_path}")
+    print(f"Loading point cloud from {file_path}")
     pcd = o3d.io.read_point_cloud(file_path)
     coords = np.array(pcd.points)
     colors = np.array(pcd.colors) if pcd.has_colors() else np.ones_like(coords) * 0.5
@@ -154,26 +154,26 @@ def load_pcd(file_path):
 
 
 def normalize_color(colors):
-    """Нормализует цвета в диапазон [-0.5, 0.5]"""
+    """Normalizes colors to the range [-0.5, 0.5]"""
     return (torch.from_numpy(colors).float() - 0.5)
 
 
 class MinkowskiInferencer:
     def __init__(self, weights_path, device):
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
-        print(f"Используем устройство: {self.device}")
+        print(f"Using device: {self.device}")
         
         self.model = MinkUNet34C(3, 20).to(self.device)
-        print("Загружаем веса модели...")
+        print("Loading model weights...")
         model_dict = torch.load(weights_path, map_location=self.device)
         self.model.load_state_dict(model_dict)
         self.model.eval()
-        print("Модель успешно загружена!")
+        print("Model loaded successfully!")
 
     def predict(self, coords, colors, voxel_size):
-        print("Выполняем инференс...")
+        print("Performing inference...")
         with torch.no_grad():
-            # Подготовка входных данных
+            # Prepare input data
             in_field = ME.TensorField(
                 features=normalize_color(colors),
                 coordinates=ME.utils.batched_coordinates([coords / voxel_size], dtype=torch.float32),
@@ -183,11 +183,11 @@ class MinkowskiInferencer:
             )
             sinput = in_field.sparse()
 
-            # Прямой проход
+            # Forward pass
             start_time = time.time()
             soutput = self.model(sinput)
             inference_time = time.time() - start_time
-            print(f"  Время инференса: {inference_time:.2f} секунд")
+            print(f"  Inference time: {inference_time:.2f} seconds")
 
             logits = soutput.F
             _, pred = logits.max(1)
@@ -195,7 +195,7 @@ class MinkowskiInferencer:
             voxel_coords = soutput.C[:, 1:].cpu().numpy() * voxel_size
             predictions = pred.cpu().numpy()
 
-        print(f"Обработано {len(voxel_coords)} вокселей (из {len(coords)} точек)")
+        print(f"Processed {len(voxel_coords)} voxels (from {len(coords)} points)")
         return voxel_coords, predictions
 
 
@@ -205,58 +205,58 @@ def main():
     set_random_seed(args.seed)
     
     print("=" * 80)
-    print("MINKOWSKI ENGINE INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
+    print("MINKOWSKI ENGINE INFERENCE - SEMANTIC SEGMENTATION")
     print("=" * 80)
-    print(f"Входной файл: {args.pcd_path}")
-    print(f"Модель: MinkUNet34C (веса: {args.weights_path})")
-    print(f"Параметры: voxel_size={args.voxel_size}m, seed={args.seed}")
+    print(f"Input file: {args.pcd_path}")
+    print(f"Model: MinkUNet34C (weights: {args.weights_path})")
+    print(f"Parameters: voxel_size={args.voxel_size}m, seed={args.seed}")
     
     download_assets()
     
     try:
-        # 1. Загрузка данных
+        # 1. Load data
         coords, colors, _ = load_pcd(args.pcd_path)
         
-        # 2. Инициализация модели
+        # 2. Initialize model
         inferencer = MinkowskiInferencer(args.weights_path, args.device)
         
-        # 3. Выполнение инференса
+        # 3. Perform inference
         voxel_coords, predictions = inferencer.predict(coords, colors, args.voxel_size)
         
-        # 4. Визуализация и сохранение
-        print("\n4. Создаем цветное облако точек...")
+        # 4. Visualize and save
+        print("\n4. Creating colored point cloud...")
         pred_pcd = o3d.geometry.PointCloud()
         pred_colors = np.array([SCANNET_COLOR_MAP[VALID_CLASS_IDS[l]] for l in predictions])
         
         pred_pcd.points = o3d.utility.Vector3dVector(voxel_coords)
         pred_pcd.colors = o3d.utility.Vector3dVector(pred_colors / 255)
         
-        # Создаем имя выходного файла
+        # Create output filename
         input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
         output_filename = (f"{input_filename}_Minkowski_MinkUNet34C_"
                            f"voxel{args.voxel_size}m_"
                            f"segmented_seed_{args.seed}.ply")
         output_path = os.path.join(args.output_dir, output_filename)
         
-        print(f"\n5. Сохраняем результат в {output_path}...")
+        print(f"\n5. Saving result to {output_path}...")
         os.makedirs(args.output_dir, exist_ok=True)
         o3d.io.write_point_cloud(output_path, pred_pcd)
         
-        print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")
-        print(f"   Обработано точек: {len(voxel_coords)}")
-        print(f"   Результат сохранен: {output_path}")
-        print(f"   Найдено классов: {len(np.unique(predictions))}")
+        print("\n✅ INFERENCE COMPLETED SUCCESSFULLY!")
+        print(f"   Processed points: {len(coords)}")
+        print(f"   Result saved to: {output_path}")
+        print(f"   Classes found: {len(np.unique(predictions))}")
         
-        # Статистика по классам
+        # Class statistics
         unique_classes, counts = np.unique(predictions, return_counts=True)
-        print("\nСтатистика классов:")
+        print("\nClass statistics:")
         for class_id, count in zip(unique_classes, counts):
             class_name = CLASS_LABELS[class_id]
             percentage = (count / len(predictions)) * 100
             print(f"  {class_name}: {count} voxels ({percentage:.1f}%)")
 
     except Exception as e:
-        print(f"\n❌ ОШИБКА: {e}")
+        print(f"\n❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

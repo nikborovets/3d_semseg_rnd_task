@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Скрипт для инференса KPConv модели на кастомном .pcd файле
-Выполняет семантическую сегментацию и сохраняет результат с цветами S3DIS
+Script for KPConv model inference on a custom .pcd file
+Performs semantic segmentation and saves the result with S3DIS colors
 """
 
 import os
@@ -13,18 +13,18 @@ import open3d as o3d
 from torch.nn.functional import softmax
 import argparse
 
-# Добавляем пути к модулям
+# Add module paths
 sys.path.append('./third_party/KPConv-PyTorch')
 sys.path.append('./third_party/sonata')
 
-# Импорты KPConv
+# KPConv imports
 from utils.config import Config
 from models.architectures import KPFCNN
 from datasets.common import PointCloudDataset
 from datasets.S3DIS import S3DISCustomBatch
 import random
 
-# Импорты предобработки
+# Preprocessing imports
 from pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
 
 
@@ -51,9 +51,9 @@ def parse_args():
 
 def set_random_seed(seed=42):
     """
-    Устанавливает random seed для воспроизводимости результатов
+    Sets the random seed for reproducibility
     """
-    print(f"🎲 Установка random seed: {seed}")
+    print(f"🎲 Setting random seed: {seed}")
     
     # Python random
     random.seed(seed)
@@ -64,24 +64,24 @@ def set_random_seed(seed=42):
     # PyTorch
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # Для multi-GPU
+    torch.cuda.manual_seed_all(seed)  # For multi-GPU
     
-    # Для полной детерминированности (может замедлить работу)
+    # For full determinism (can slow down training)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    print("✅ Random seed установлен для всех библиотек")
+    print("✅ Random seed set for all libraries")
 
 
 class CustomPointCloudDataset(PointCloudDataset):
-    """Кастомный датасет для инференса одного облака точек"""
+    """Custom dataset for inferencing a single point cloud"""
     
     def __init__(self, config):
-        # Инициализируем родительский класс без имени датасета
+        # Initialize parent class without a dataset name
         super().__init__('Custom')
         self.config = config
         
-        # S3DIS классы
+        # S3DIS classes
         self.label_to_names = {
             0: 'ceiling',
             1: 'floor',
@@ -102,36 +102,36 @@ class CustomPointCloudDataset(PointCloudDataset):
 
 
 class KPConvInferencer:
-    """Класс для инференса KPConv модели"""
+    """Class for KPConv model inference"""
     
     def __init__(self, model_path, device='cuda'):
         """
-        Инициализация инференсера
+        Initializer for the inferencer
         
         Args:
-            model_path (str): Путь к папке с обученной моделью
-            device (str): Устройство для вычислений ('cuda' или 'cpu')
+            model_path (str): Path to the folder with the trained model
+            device (str): Device for computations ('cuda' or 'cpu')
         """
         self.model_path = model_path
         self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
         
-        print(f"Используем устройство: {self.device}")
+        print(f"Using device: {self.device}")
         
-        # Загружаем конфигурацию
+        # Load configuration
         self.config = Config()
         self.config.load(model_path)
         
-        print(f"Загружена конфигурация модели: {self.config.dataset}")
-        print(f"Количество классов: {self.config.num_classes}")
-        print(f"Размерность признаков: {self.config.in_features_dim}")
+        print(f"Loaded model configuration: {self.config.dataset}")
+        print(f"Number of classes: {self.config.num_classes}")
+        print(f"Input feature dimensions: {self.config.in_features_dim}")
         
-        # Создаем датасет для получения меток классов
+        # Create dataset to get class labels
         self.dataset = CustomPointCloudDataset(self.config)
         
-        # Загружаем модель
+        # Load model
         self._load_model()
         
-        # # Цвета для классов S3DIS (RGB в диапазоне 0-1)
+        # S3DIS class colors (RGB in range 0-1)
         # self.class_colors = np.array([
         #     [0.7, 0.7, 0.7],   # 0: ceiling - серый
         #     [0.5, 0.3, 0.1],   # 1: floor - коричневый
@@ -147,6 +147,7 @@ class KPConvInferencer:
         #     [0.0, 0.0, 0.8],   # 11: board - синий
         #     [0.8, 0.8, 0.0],   # 12: clutter - желтый
         # ])
+        # S3DIS class colors (RGB in range 0-1)
         self.class_colors = np.array([
             [82/255, 84/255, 163/255],    # 0: ceiling -> otherfurniture
             [152/255, 223/255, 138/255],    # 1: floor -> floor
@@ -167,97 +168,97 @@ class KPConvInferencer:
 
     
     def _load_model(self):
-        """Загружает обученную модель"""
-        print("Загружаем модель...")
+        """Loads the trained model"""
+        print("Loading model...")
         
-        # Создаем архитектуру модели
+        # Create model architecture
         self.model = KPFCNN(
             self.config, 
             self.dataset.label_values, 
             self.dataset.ignored_labels
         )
         
-        # Загружаем веса
+        # Load weights
         checkpoint_path = os.path.join(self.model_path, 'checkpoints')
         checkpoints = [f for f in os.listdir(checkpoint_path) if f.startswith('chkp')]
         
         if not checkpoints:
-            raise ValueError(f"Не найдены чекпоинты в {checkpoint_path}")
+            raise ValueError(f"No checkpoints found in {checkpoint_path}")
         
-        # Берем последний чекпоинт
+        # Take the latest checkpoint
         latest_checkpoint = sorted(checkpoints)[-1]
         chkp_path = os.path.join(checkpoint_path, latest_checkpoint)
         
-        print(f"Загружаем чекпоинт: {latest_checkpoint}")
+        print(f"Loading checkpoint: {latest_checkpoint}")
         
         checkpoint = torch.load(chkp_path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
         self.model.eval()
         
-        print("Модель успешно загружена!")
+        print("Model loaded successfully!")
     
     def _create_batch_from_points(self, points, features):
         """
-        Создает batch для одного облака точек
+        Creates a batch for a single point cloud
         
         Args:
-            points (np.ndarray): Координаты точек (N, 3)
-            features (np.ndarray): Признаки точек (N, 5)
+            points (np.ndarray): Point coordinates (N, 3)
+            features (np.ndarray): Point features (N, 5)
             
         Returns:
-            batch: Объект batch для модели
+            batch: A batch object for the model
         """
-        # Создаем фиктивные метки (не используются при инференсе)
+        # Create dummy labels (not used in inference)
         labels = np.zeros(len(points), dtype=np.int64)
         stack_lengths = np.array([len(points)], dtype=np.int32)
         
-        # Используем метод из датасета для создания входных данных
+        # Use the dataset method to create input data
         input_list = self.dataset.segmentation_inputs(
             points, features, labels, stack_lengths
         )
         
-        # Добавляем дополнительные данные для инференса
-        scales = np.array([1.0], dtype=np.float32)  # Без масштабирования
-        rots = np.eye(3, dtype=np.float32)[np.newaxis, :]  # Без поворота
-        cloud_inds = np.array([0], dtype=np.int32)  # Индекс облака
-        point_inds = np.array([0], dtype=np.int32)  # Индекс точки
-        input_inds = np.arange(len(points), dtype=np.int32)  # Индексы всех точек
+        # Add additional data for inference
+        scales = np.array([1.0], dtype=np.float32)  # No scaling
+        rots = np.eye(3, dtype=np.float32)[np.newaxis, :]  # No rotation
+        cloud_inds = np.array([0], dtype=np.int32)  # Cloud index
+        point_inds = np.array([0], dtype=np.int32)  # Point index
+        input_inds = np.arange(len(points), dtype=np.int32)  # Indices of all points
         
         input_list += [scales, rots, cloud_inds, point_inds, input_inds]
         
-        # Создаем batch объект
+        # Create batch object
         batch = S3DISCustomBatch([input_list])
         
         return batch
     
     def predict(self, points, features, chunk_size=30000):
         """
-        Выполняет предсказание для облака точек с разбивкой на части
+        Performs prediction for a point cloud, splitting it into chunks
         
         Args:
-            points (np.ndarray): Координаты точек (N, 3)
-            features (np.ndarray): Признаки точек (N, 5)
-            chunk_size (int): Размер части для обработки
+            points (np.ndarray): Point coordinates (N, 3)
+            features (np.ndarray): Point features (N, 5)
+            chunk_size (int): Size of chunks for processing
             
         Returns:
-            np.ndarray: Предсказанные классы для каждой точки
+            np.ndarray: Predicted classes for each point
         """
-        print("Выполняем инференс...")
+        print("Performing inference...")
         
-        # Очищаем кэш перед началом инференса
+        # Clear cache before starting inference
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            print("   GPU кэш очищен перед инференсом")
+            print("   GPU cache cleared before inference")
         
         num_points = len(points)
-        print(f"Общее количество точек: {num_points}")
+        print(f"Total number of points: {num_points}")
         
         total_inference_time = 0.0
         
-        # Если точек слишком много, разбиваем на части
+        # If there are too many points, split into chunks
         if num_points > chunk_size:
-            print(f"Разбиваем на части по {chunk_size} точек...")
+            print(f"Splitting into chunks of {chunk_size} points...")
             
             all_predictions = []
             all_probs = []
@@ -267,9 +268,9 @@ class KPConvInferencer:
                 chunk_points = points[i:end_idx]
                 chunk_features = features[i:end_idx]
                 
-                print(f"Обрабатываем часть {i//chunk_size + 1}: точки {i}-{end_idx}")
+                print(f"Processing chunk {i//chunk_size + 1}: points {i}-{end_idx}")
                 
-                # Очищаем кэш GPU перед каждой частью
+                # Clear GPU cache before each chunk
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 
@@ -284,29 +285,29 @@ class KPConvInferencer:
             predictions, probs, inference_time = self._predict_chunk(points, features)
             total_inference_time = inference_time
         
-        print(f"Предсказания получены для {len(predictions)} точек")
-        print(f"Общее время инференса: {total_inference_time:.2f} секунд")
+        print(f"Predictions received for {len(predictions)} points")
+        print(f"Total inference time: {total_inference_time:.2f} seconds")
         
         return predictions, probs
     
     def _predict_chunk(self, points, features):
-        """Предсказание для одной части данных"""
-        # Создаем batch
+        """Prediction for a single data chunk"""
+        # Create batch
         batch = self._create_batch_from_points(points, features)
         
-        # Переносим на устройство
+        # Move to device
         if 'cuda' in str(self.device):
             batch.to(self.device)
         
-        # Выполняем предсказание
+        # Perform prediction
         with torch.no_grad():
             start_time = time.time()
             outputs = self.model(batch, self.config)
             inference_time = time.time() - start_time
             
-            print(f"  Время инференса части: {inference_time:.2f} секунд")
+            print(f"  Chunk inference time: {inference_time:.2f} seconds")
         
-        # Получаем вероятности классов
+        # Get class probabilities
         probs = softmax(outputs, dim=1).cpu().numpy()
         predictions = np.argmax(probs, axis=1)
         
@@ -314,26 +315,26 @@ class KPConvInferencer:
     
     def colorize_predictions(self, points, predictions):
         """
-        Создает цветное облако точек на основе предсказаний
+        Creates a colored point cloud based on predictions
         
         Args:
-            points (np.ndarray): Координаты точек (N, 3)
-            predictions (np.ndarray): Предсказанные классы (N,)
+            points (np.ndarray): Point coordinates (N, 3)
+            predictions (np.ndarray): Predicted classes (N,)
             
         Returns:
-            o3d.geometry.PointCloud: Цветное облако точек
+            o3d.geometry.PointCloud: Colored point cloud
         """
-        # Создаем облако точек
+        # Create a point cloud
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(points)
         
-        # Назначаем цвета на основе предсказаний
+        # Assign colors based on predictions
         colors = np.zeros((len(points), 3))
         for i, pred in enumerate(predictions):
             if pred < len(self.class_colors):
                 colors[i] = self.class_colors[pred]
             else:
-                colors[i] = [0.5, 0.5, 0.5]  # Серый для неизвестных классов
+                colors[i] = [0.5, 0.5, 0.5]  # Gray for unknown classes
         
         pcd.colors = o3d.utility.Vector3dVector(colors)
         
@@ -341,16 +342,16 @@ class KPConvInferencer:
 
 
 def main():
-    """Основная функция для демонстрации инференса"""
+    """Main function to demonstrate inference"""
     args = parse_args()
     
     set_random_seed(args.seed)
 
     print("=" * 80)
-    print("KPCONV INFERENCE - СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ")
+    print("KPCONV INFERENCE - SEMANTIC SEGMENTATION")
     print("=" * 80)
     
-    # Создаем информативное имя выходного файла
+    # Create an informative output filename
     input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
     model_name = os.path.basename(args.model_path)
     output_filename = (f"{input_filename}_KPConv_{model_name}_"
@@ -358,22 +359,22 @@ def main():
                       f"chunk{args.chunk_size}_segmented_seed_{args.seed}.ply")
     output_path = os.path.join(args.output_dir, output_filename)
     
-    print(f"Входной файл: {args.pcd_path}")
-    print(f"Модель: {model_name} (из {args.model_path})")
-    print(f"Параметры: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, chunk_size={args.chunk_size}, device={args.device}")
-    print(f"Выходной файл: {output_path}")
+    print(f"Input file: {args.pcd_path}")
+    print(f"Model: {model_name} (from {args.model_path})")
+    print(f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, chunk_size={args.chunk_size}, device={args.device}")
+    print(f"Output file: {output_path}")
     
     try:
-        # 0. Очищаем GPU кэш перед началом
-        print("\n0. Очищаем GPU кэш...")
+        # 0. Clear GPU cache before starting
+        print("\n0. Clearing GPU cache...")
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            print(f"   GPU память очищена. Доступно: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            print(f"   GPU memory cleared. Available: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
         else:
-            print("   CUDA недоступна, используем CPU")
+            print("   CUDA not available, using CPU")
         
-        # 1. Загружаем и предобрабатываем данные
-        print("\n1. Загружаем и предобрабатываем PCD файл...")
+        # 1. Load and preprocess data
+        print("\n1. Loading and preprocessing PCD file...")
         point_dict = load_and_preprocess_pcd(
             file_path=args.pcd_path,
             downsampling_method=args.downsampling_method,
@@ -381,47 +382,47 @@ def main():
             add_segmentation=False
         )
         
-        # 2. Конвертируем в формат KPConv
-        print("\n2. Конвертируем данные в формат KPConv...")
+        # 2. Convert to KPConv format
+        print("\n2. Converting data to KPConv format...")
         points, features = convert_to_kpconv_format(point_dict)
         print(f"   Points shape: {points.shape}")
         print(f"   Features shape: {features.shape}")
         
-        # 3. Создаем инференсер и загружаем модель
-        print("\n3. Инициализируем модель...")
-        # Пробуем CUDA, если не получается - используем CPU
+        # 3. Create inferencer and load model
+        print("\n3. Initializing model...")
+        # Try CUDA, fall back to CPU if it fails
         try:
-            # Пытаемся использовать устройство, указанное в аргументах
+            # Try to use the device specified in the arguments
             inferencer = KPConvInferencer(args.model_path, device=args.device)
-            print("\n4. Выполняем семантическую сегментацию...")
+            print("\n4. Performing semantic segmentation...")
             predictions, probs = inferencer.predict(points, features, chunk_size=args.chunk_size)
         except RuntimeError as e:
-            # Если на CUDA не хватило памяти и был выбран 'cuda', переключаемся на 'cpu'
+            # If CUDA runs out of memory and 'cuda' was selected, switch to 'cpu'
             if "CUDA out of memory." in str(e) and args.device == 'cuda':
-                print("   GPU память недостаточна, переключаемся на CPU...")
-                torch.cuda.empty_cache() # Очищаем кэш перед переключением
+                print("   GPU memory insufficient, switching to CPU...")
+                torch.cuda.empty_cache() # Clear cache before switching
                 inferencer = KPConvInferencer(args.model_path, device='cpu')
-                print("\n4. Выполняем семантическую сегментацию на CPU...")
+                print("\n4. Performing semantic segmentation on CPU...")
                 predictions, probs = inferencer.predict(points, features, chunk_size=args.chunk_size)
             else:
                 raise e
         
-        # 5. Создаем цветное облако точек
-        print("\n5. Создаем цветное облако точек...")
+        # 5. Create colored point cloud
+        print("\n5. Creating colored point cloud...")
         colored_pcd = inferencer.colorize_predictions(points, predictions)
         
-        # 6. Сохраняем результат
-        print(f"\n6. Сохраняем результат в {output_path}...")
+        # 6. Save the result
+        print(f"\n6. Saving result to {output_path}...")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         o3d.io.write_point_cloud(output_path, colored_pcd)
         
-        print("\n✅ ИНФЕРЕНС ЗАВЕРШЕН УСПЕШНО!")
-        print(f"   Обработано точек: {len(points)}")
-        print(f"   Результат сохранен: {output_path}")
-        print(f"   Найдено классов: {len(np.unique(predictions))}")
+        print("\n✅ INFERENCE COMPLETED SUCCESSFULLY!")
+        print(f"   Processed points: {len(points)}")
+        print(f"   Result saved to: {output_path}")
+        print(f"   Classes found: {len(np.unique(predictions))}")
 
-        # Статистика по классам
-        print("\nСтатистика классов:")
+        # Class statistics
+        print("\nClass statistics:")
         unique, counts = np.unique(predictions, return_counts=True)
         for class_id, count in zip(unique, counts):
             class_name = inferencer.dataset.label_to_names.get(class_id, f"unknown_{class_id}")
@@ -431,7 +432,7 @@ def main():
         return True
         
     except Exception as e:
-        print(f"\n❌ ОШИБКА: {e}")
+        print(f"\n❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
         return False
