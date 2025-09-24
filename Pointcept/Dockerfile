@@ -10,7 +10,8 @@ WORKDIR /workspace
 #     echo "Обнаружена архитектура CUDA: $CUDA_ARCH"
 
 # ENV TORCH_CUDA_ARCH_LIST="$CUDA_ARCH" \
-ENV TORCH_CUDA_ARCH_LIST="8.0" \
+# ENV TORCH_CUDA_ARCH_LIST="8.0" \
+ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 6.2 7.0 7.2 7.5 8.0 8.6" \
     TORCH_NVCC_FLAGS="-Xfatbin -compress-all" \
     MAX_JOBS=8
 
