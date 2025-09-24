@@ -37,7 +37,7 @@ except ImportError:
 
 import torch
 
-sys.path.append('./third_party/MinkowskiEngine')
+sys.path.append('./Pointcept/third_party/MinkowskiEngine')
 import MinkowskiEngine as ME
 from examples.minkunet import MinkUNet34C
 

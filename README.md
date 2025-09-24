@@ -24,6 +24,7 @@ sudo systemctl restart docker
 ```bash
 docker pull pointcept/pointcept:v1.5.0-pytorch1.11.0-cuda11.3-cudnn8-devel
 git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
+cd 3d_semseg_rnd_task
 ```
 
 ### Сборка контейнера
@@ -31,12 +32,11 @@ git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
 export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1)
 make -f all
 
-cd Pointcept
 docker compose up -d
 
 # docker compose exec pointcept_me /bin/bash
-docker exec -it pointcept-pointcept_me-1 /bin/bash
-cd third_party/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh && cd ../../../
+docker exec -it 3d_semseg_rnd_task-pointcept_me-1 /bin/bash
+cd Pointcept/third_party/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh && cd ../../../../
 
 python mink_inference.py
 python sonata_inference.py

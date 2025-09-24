@@ -20,7 +20,7 @@ import numpy as np
 import open3d as o3d
 import argparse
 import time
-sys.path.append('./third_party/sonata')
+sys.path.append('./Pointcept/third_party/sonata')
 import sonata
 import torch
 import torch.nn as nn

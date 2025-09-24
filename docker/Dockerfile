@@ -1,9 +1,6 @@
 FROM pointcept/pointcept:v1.5.0-pytorch1.11.0-cuda11.3-cudnn8-devel
 WORKDIR /workspace
 
-# Аргумент для определения архитектуры CUDA во время сборки.
-# Передается через --build-arg TORCH_CUDA_ARCH_LIST=<arch>
-# Если аргумент не передан, используются значения по умолчанию 7.5 и 8.0
 ARG CUDA_ARCH="7.5 8.0 8.6"
 ARG MAX_JOBS=14
 
@@ -16,8 +13,8 @@ RUN apt-get update && apt-get install -y git ninja-build cmake build-essential l
     rm -rf /var/lib/apt/lists/*
 RUN pip install open3d
 
-COPY third_party/MinkowskiEngine /workspace/MinkowskiEngine
-COPY third_party/KPConv-PyTorch /workspace/KPConv-PyTorch
+COPY Pointcept/third_party/MinkowskiEngine /workspace/MinkowskiEngine
+COPY Pointcept/third_party/KPConv-PyTorch /workspace/KPConv-PyTorch
 
 RUN cd /workspace/MinkowskiEngine && python setup.py install --force_cuda --blas=openblas
 RUN cd /workspace/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh

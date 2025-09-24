@@ -2,15 +2,15 @@ services:
   pointcept_me:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
       args:
         - CUDA_ARCH
     image: pointcept_me:pt1.11-cuda11.3
     working_dir: /workspace
     volumes:
       - ./:/workspace
-      - ../pcd_files:/workspace/pcd_files
-      - ../kpconv_weights/Light_KPFCNN:/workspace/kpconv_weights/Light_KPFCNN
+      - ./pcd_files:/workspace/pcd_files
+      - ./kpconv_weights/Light_KPFCNN:/workspace/kpconv_weights/Light_KPFCNN
     environment:
       - PYTHONUNBUFFERED=1
     ipc: host

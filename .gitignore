@@ -245,5 +245,5 @@ kpconv_weights/
 pcd_files/
 1.ply
 weights.pth
-Pointcept/kernels/dispositions/
+kernels/dispositions/
 result_plys/

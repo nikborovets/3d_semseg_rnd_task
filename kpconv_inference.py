@@ -14,8 +14,8 @@ from torch.nn.functional import softmax
 import argparse
 
 # Add module paths
-sys.path.append('./third_party/KPConv-PyTorch')
-sys.path.append('./third_party/sonata')
+sys.path.append('./Pointcept/third_party/KPConv-PyTorch')
+sys.path.append('./Pointcept/third_party/sonata')
 
 # KPConv imports
 from utils.config import Config
