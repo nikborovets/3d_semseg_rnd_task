@@ -15,7 +15,6 @@
 
 import sys
 import os
-import random
 import numpy as np
 import open3d as o3d
 import argparse
@@ -26,6 +25,8 @@ import torch
 import torch.nn as nn
 
 from utils.pcd_preprocessor import load_and_preprocess_pcd
+
+from utils.utils import set_random_seed
 
 
 def parse_args():
@@ -55,38 +56,6 @@ def parse_args():
     parser.add_argument('--enc_patch_size', type=int, default=enc_patch_size,
                         help='Encoder patch size for SONATA model.')
     return parser.parse_args()
-
-
-def set_random_seed(seed=42):
-    """
-    Sets the random seed for reproducibility
-    """
-    print(f"🎲 Setting random seed: {seed}")
-    
-    # Python random
-    random.seed(seed)
-    
-    # NumPy
-    np.random.seed(seed)
-    
-    # PyTorch
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # For multi-GPU
-    
-    # For full determinism (can slow down training)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
-    # SONATA also uses a random seed
-    try:
-        sonata.utils.set_seed(seed)
-        print("✅ SONATA seed set")
-    except:
-        print("⚠️  SONATA seed not set (module not found)")
-    
-    print("✅ Random seed set for all libraries")
-
 
 # try:
 #     import flash_attn
@@ -275,8 +244,10 @@ class SonataInferencer:
 
 def main():
     args = parse_args()
-    
+
     set_random_seed(args.seed)
+    sonata.utils.set_seed(args.seed)
+    print("✅ SONATA seed set")
     
     print("=" * 80)
     print("SONATA INFERENCE - SEMANTIC SEGMENTATION")

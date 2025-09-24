@@ -22,10 +22,11 @@ from utils.config import Config
 from models.architectures import KPFCNN
 from datasets.common import PointCloudDataset
 from datasets.S3DIS import S3DISCustomBatch
-import random
 
 # Preprocessing imports
 from utils.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
+
+from utils.utils import set_random_seed
 
 
 def parse_args():
@@ -34,8 +35,9 @@ def parse_args():
     model_path = '/workspace/kpconv_weights/Light_KPFCNN'
     output_dir = 'result_plys/kpconv_plys'
     downsampling_method = 'grid'
+    target_points = 500000
     voxel_size = 0.03
-    chunk_size = 300000
+    chunk_size = 600000
     seed = 42
     device = 'cuda'
     # ------------------------------------
@@ -49,6 +51,8 @@ def parse_args():
                         help='Directory to save the output PLY file.')
     parser.add_argument('--downsampling_method', type=str, default=downsampling_method, choices=['grid', 'voxel', 'random'],
                         help='Downsampling method.')
+    parser.add_argument('--target_points', type=int, default=target_points,
+                        help='Target number of points for downsampling.')
     parser.add_argument('--voxel_size', type=float, default=voxel_size,
                         help='Voxel size for downsampling.')
     parser.add_argument('--chunk_size', type=int, default=chunk_size,
@@ -58,30 +62,6 @@ def parse_args():
     parser.add_argument('--device', type=str, default=device, choices=['cuda', 'cpu'],
                         help='Device to use for inference.')
     return parser.parse_args()
-
-
-def set_random_seed(seed=42):
-    """
-    Sets the random seed for reproducibility
-    """
-    print(f"🎲 Setting random seed: {seed}")
-    
-    # Python random
-    random.seed(seed)
-    
-    # NumPy
-    np.random.seed(seed)
-    
-    # PyTorch
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # For multi-GPU
-    
-    # For full determinism (can slow down training)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
-    print("✅ Random seed set for all libraries")
 
 
 class CustomPointCloudDataset(PointCloudDataset):
@@ -390,6 +370,7 @@ def main():
             file_path=args.pcd_path,
             downsampling_method=args.downsampling_method,
             voxel_size=args.voxel_size,
+            target_points=args.target_points,
             add_segmentation=False
         )
         

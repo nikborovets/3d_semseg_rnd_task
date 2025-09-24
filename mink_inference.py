@@ -25,7 +25,6 @@
 import sys
 import os
 import argparse
-import random
 import numpy as np
 from urllib.request import urlretrieve
 import time
@@ -40,6 +39,8 @@ import torch
 sys.path.append('./Pointcept/third_party/MinkowskiEngine')
 import MinkowskiEngine as ME
 from examples.minkunet import MinkUNet34C
+
+from utils.utils import set_random_seed
 
 
 CLASS_LABELS = ('wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table',
@@ -118,30 +119,6 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=seed,
                         help='Random seed for reproducibility.')
     return parser.parse_args()
-
-
-def set_random_seed(seed=42):
-    """
-    Sets the random seed for reproducibility
-    """
-    print(f"🎲 Setting random seed: {seed}")
-    
-    # Python random
-    random.seed(seed)
-    
-    # NumPy
-    np.random.seed(seed)
-    
-    # PyTorch
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # For multi-GPU
-    
-    # For full determinism (can slow down training)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
-    print("✅ Random seed set for all libraries")
 
 
 def download_assets():

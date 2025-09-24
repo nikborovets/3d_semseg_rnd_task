@@ -139,3 +139,33 @@ The output filenames are structured to be descriptive and include the model name
 ```
 down0.01_KPConv_Light_KPFCNN_downsample_grid_voxel0.03m_chunk300000_segmented_seed_42.ply
 ```
+
+## Environment and Tooling
+
+This section details the computational environment and software used for running experiments and visualizing results.
+
+### Visualization Tool
+
+The resulting `.ply` point cloud files were visualized and analyzed using [**MeshLab**](https://www.meshlab.net/), an open-source system for processing and editing 3D triangular meshes. It provides a comprehensive set of tools for inspection, cleaning, and rendering large 3D models.
+
+### Computational Resources
+
+The experiments were conducted on high-performance computing resources from two primary sources:
+
+#### 1. MIPT GPU Cluster
+
+A significant portion of the computations was performed on the MIPT cluster with the following configuration:
+- **CPU:** 2x Intel(R) Xeon(R) Gold 6136 @ 3.00GHz (total 48 cores, 96 threads)
+- **RAM:** 252 GB
+- **GPU:** 8x NVIDIA GeForce RTX 2080 Ti (11 GB VRAM each)
+- **CUDA Version:** 13.0
+
+#### 2. Selectel Cloud Servers
+
+For additional computational power and flexibility, dedicated servers from Selectel were utilized. The configurations included:
+- **CPU:** AMD EPYC 7763 64-Core Processor (from 8 to 48 vCPUs)
+- **RAM:** From 32 to 60 GB
+- **GPU:**
+    - NVIDIA RTX A5000 (24 GB VRAM)
+    - NVIDIA A100 (40 GB VRAM)
+- **CUDA Version:** 12.2
