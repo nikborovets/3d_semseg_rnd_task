@@ -3,26 +3,34 @@
 ### Установка Docker и NVIDIA Container Toolkit
 
 # 1. Установка Docker
+```bash
 sudo apt update
 apt install git unzip htop -y
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh ./get-docker.sh
-
+```
 # 2. Установка NVIDIA Container Toolkit
+```bash
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey |sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
 && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list \
 && sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
-
+```
 # 3. Настройка Docker для использования NVIDIA runtime и перезапуск
+```bash
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
+```
 
-
+### Скачивание Pointcept и данных
+```bash
 docker pull pointcept/pointcept:v1.5.0-pytorch1.11.0-cuda11.3-cudnn8-devel
 git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
+```
 
-# export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1)
+### Сборка контейнера
+```bash
+export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1)
 make -f all
 
 cd Pointcept
@@ -38,7 +46,7 @@ python kpconv_inference.py
 
 
 
-
+#### Заметки
 ```bash
 # set -e
 
