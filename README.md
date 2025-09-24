@@ -19,6 +19,14 @@ Below is an example of segmentation results from the Sonata model:
   </tr>
 </table>
 
+## Project Reports
+
+This project includes two detailed reports that correspond to the main parts of the R&D assignment:
+
+1.  [**State-of-the-Art Research (`sota_review.md`)**](./docs/sota_review.md): This report covers **Part 1** of the assignment. It includes a comprehensive analysis of SOTA methods, a ranked list of top approaches, and the criteria used for their evaluation.
+
+2.  [**Reproduction and Analysis Report (`analysis_report.md`)**](./docs/analysis_report.md): This document addresses **Part 2** of the assignment. It details the practical challenges, experiments with data preprocessing, and provides a thorough visual analysis of the segmentation results from the prototyped models.
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your host machine:
