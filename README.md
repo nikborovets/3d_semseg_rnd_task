@@ -102,3 +102,23 @@ python kpconv_inference.py \
     --voxel_size 0.03 \
     --chunk_size 300000
 ```
+
+## Outputs
+
+The inference scripts save the segmented point clouds as `.ply` files in the `result_plys/` directory. The results for each model are stored in separate subdirectories:
+
+-   **KPConv:** `result_plys/kpconv_plys/`
+-   **MinkowskiNet:** `result_plys/minkowski_plys/`
+-   **Sonata:** `result_plys/sonata_plys/`
+
+The output filenames are structured to be descriptive and include the model name, input file, and key inference parameters.
+
+**Example Filename Format:**
+```
+<input_filename>_<model_name>_<parameters>_segmented_seed_<seed_number>.ply
+```
+
+**Concrete Example (from KPConv):**
+```
+down0.01_KPConv_Light_KPFCNN_downsample_grid_voxel0.03m_chunk300000_segmented_seed_42.ply
+```
