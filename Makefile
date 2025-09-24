@@ -18,7 +18,10 @@ download_weights:
 
 build_docker:
 	@echo "Сборка Docker образа..."
-	cd Pointcept && docker compose build
+	# cd Pointcept && docker compose build
+	cd Pointcept && \
+	 export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1) && \
+	 docker compose build --build-arg TORCH_CUDA_ARCH_LIST=${CUDA_ARCH}
 
 download_data: download_pcd download_weights
 

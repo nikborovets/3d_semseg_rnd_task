@@ -1,8 +1,9 @@
 # 3d_semseg_rnd_task
 
-```
+```bash
 git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
 
+# export CUDA_ARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1) && docker compose build --build-arg TORCH_CUDA_ARCH_LIST=$CUDA_ARCH
 make -f all
 
 cd Pointcept
