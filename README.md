@@ -6,7 +6,9 @@ This repository contains a reproducible pipeline for semantic segmentation of de
 
 Below is an example of segmentation results from the Sonata model:
 
-![Sonata Segmentation Result](./img/sonata_512_003.gif)
+<div align="center">
+  <img src="./assets/sonata_512_003.gif" alt="Sonata Segmentation Result" width="500"/>
+</div>
 
 ## Prerequisites
 
