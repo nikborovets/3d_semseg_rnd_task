@@ -124,12 +124,12 @@ KPConv, как представитель классического point-based
 <table>
   <tr>
     <td style="text-align: center; padding: 10px;">
-      <p><strong>Конфигурация 1 (chunk size 60000)</strong></p>
-      <img src="../assets/small_kp_conv_003_60000.gif" alt="KPConv Segmentation Result (chunk size 60000)" width="250"/>
+      <p><strong>Конфигурация 1 (chunk size 60000) demo in cpu</strong></p>
+      <img src="../assets/small_kp_conv_003_60000.gif" alt="KPConv Segmentation Result (chunk size 60000) demo in cpu" width="250"/>
     </td>
     <td style="text-align: center; padding: 10px;">
-      <p><strong>Конфигурация 2 (chunk size 30000)</strong></p>
-      <img src="../assets/small_kp_conv_003_30000.gif" alt="KPConv Segmentation Result (chunk size 30000)" width="250"/>
+      <p><strong>Конфигурация 2 (chunk size 30000) demo in gpu</strong></p>
+      <img src="../assets/small_kp_conv_003_30000.gif" alt="KPConv Segmentation Result (chunk size 30000) demo in gpu" width="250"/>
     </td>
   </tr>
 </table>
