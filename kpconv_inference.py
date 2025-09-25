@@ -13,6 +13,10 @@ import open3d as o3d
 from torch.nn.functional import softmax
 import argparse
 
+# Preprocessing imports
+from utils.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
+from utils.utils import set_random_seed
+
 # Add module paths
 sys.path.append('./Pointcept/third_party/KPConv-PyTorch')
 sys.path.append('./Pointcept/third_party/sonata')
@@ -22,11 +26,6 @@ from utils.config import Config
 from models.architectures import KPFCNN
 from datasets.common import PointCloudDataset
 from datasets.S3DIS import S3DISCustomBatch
-
-# Preprocessing imports
-from utils.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_format
-
-from utils.utils import set_random_seed
 
 
 def parse_args():

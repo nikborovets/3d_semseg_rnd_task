@@ -28,19 +28,14 @@ import argparse
 import numpy as np
 from urllib.request import urlretrieve
 import time
-
-try:
-    import open3d as o3d
-except ImportError:
-    raise ImportError('Please install open3d with `pip install open3d`.')
-
+import open3d as o3d
 import torch
+
+from utils.utils import set_random_seed
 
 sys.path.append('./Pointcept/third_party/MinkowskiEngine')
 import MinkowskiEngine as ME
 from examples.minkunet import MinkUNet34C
-
-from utils.utils import set_random_seed
 
 
 CLASS_LABELS = ('wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table',

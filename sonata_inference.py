@@ -19,14 +19,14 @@ import numpy as np
 import open3d as o3d
 import argparse
 import time
-sys.path.append('./Pointcept/third_party/sonata')
-import sonata
 import torch
 import torch.nn as nn
 
 from utils.pcd_preprocessor import load_and_preprocess_pcd
-
 from utils.utils import set_random_seed
+
+sys.path.append('./Pointcept/third_party/sonata')
+import sonata
 
 
 def parse_args():
