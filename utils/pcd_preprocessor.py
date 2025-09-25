@@ -4,6 +4,7 @@
 """
 
 import gc
+import os
 import numpy as np
 import open3d as o3d
 
@@ -390,3 +391,67 @@ points, features = convert_to_kpconv_format(point_dict)
 points, features = convert_to_kpconv_format_extended(point_dict, "rgb_normal_z")
         """
     }
+
+def downsample_and_save_ply(input_pcd_path, voxel_size=0.03):
+    """
+    Загружает .pcd файл, применяет voxel downsampling и сохраняет в .ply.
+
+    Args:
+        input_pcd_path (str): Путь к входному .pcd файлу
+        voxel_size (float): Размер вокселя для downsampling (по умолчанию 0.03 = 3 см)
+
+    Returns:
+        None: Сохраняет файл и печатает сводку
+    """
+    # Генерируем имя выходного файла на основе входного и voxel_size
+    base_name = os.path.splitext(os.path.basename(input_pcd_path))[0]
+    output_ply_path = os.path.join(os.path.dirname(input_pcd_path), f"{base_name}_voxel_{voxel_size}.ply")
+    print(f"Loading PCD file: {input_pcd_path}")
+    pcd = o3d.io.read_point_cloud(input_pcd_path)
+    
+    if len(pcd.points) == 0:
+        raise ValueError(f"Empty point cloud loaded from {input_pcd_path}")
+    
+    # Освобождаем память после загрузки
+    gc.collect()
+    print("Memory freed after PCD loading")
+    
+    # Применяем voxel downsampling
+    pcd_downsampled = downsample_point_cloud(pcd, method="voxel", voxel_size=voxel_size)
+    
+    # Обработка цветов: если нет, добавляем серый
+    if not pcd_downsampled.has_colors():
+        num_points = len(pcd_downsampled.points)
+        pcd_downsampled.colors = o3d.utility.Vector3dVector(np.ones((num_points, 3)) * 0.5)
+        print("Warning: No color data found, using default gray colors")
+    
+    # Вычисление нормалей, если их нет
+    if not pcd_downsampled.has_normals():
+        print("Warning: No normal data found, computing normals")
+        pcd_downsampled.estimate_normals()
+    
+    # Сохранение в .ply
+    print(f"Saving downsampled point cloud to: {output_ply_path}")
+    os.makedirs(os.path.dirname(output_ply_path), exist_ok=True)
+    success = o3d.io.write_point_cloud(output_ply_path, pcd_downsampled)
+    if success:
+        print(f"Successfully saved to {output_ply_path}")
+        print(f"Original points: {len(pcd.points)}, Downsampled points: {len(pcd_downsampled.points)}")
+    else:
+        print(f"Error saving to {output_ply_path}")
+    
+    # Освобождаем память
+    del pcd, pcd_downsampled
+    gc.collect()
+    print("Memory freed after processing")
+
+
+if __name__ == "__main__":
+    pcd_path = '/workspace/pcd_files/down0.01.pcd'
+    # pcd_path = '/workspace/pcd_files/music_room.pcd'
+    voxel_size = 0.02
+
+    try:
+        downsample_and_save_ply(pcd_path, voxel_size)
+    except Exception as e:
+        print(f"Error: {e}")
