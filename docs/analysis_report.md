@@ -68,6 +68,29 @@ Sonata, как самая современная модель, продемон�
   <img src="../assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250"/>
 </div>
 
+*   **Полная статистика классов (из лога выполнения, ScanNet20):**
+    ```
+    Classes found: 17
+
+    wall: 234330 points (52.5%)
+    floor: 74039 points (16.6%)
+    cabinet: 73209 points (16.4%)
+    bed: 3287 points (0.7%)
+    chair: 10219 points (2.3%)
+    sofa: 887 points (0.2%)
+    table: 20565 points (4.6%)
+    door: 4848 points (1.1%)
+    window: 8 points (0.0%)
+    bookshelf: 718 points (0.2%)
+    picture: 42 points (0.0%)
+    counter: 174 points (0.0%)
+    curtain: 107 points (0.0%)
+    shower curtain: 4 points (0.0%)
+    sink: 108 points (0.0%)
+    bathtub: 29 points (0.0%)
+    otherfurniture: 23899 points (5.4%)
+    ```
+
 #### **Архитектура 2: Minkowski Engine (MinkUNet34C, Voxel-based)**
 
 MinkUNet показал себя как надежный, но менее точный baseline.
@@ -100,6 +123,28 @@ MinkUNet показал себя как надежный, но менее точ
   </tr>
 </table>
 </div>
+
+*   **Полная статистика классов (из лога выполнения, ScanNet20):**
+    ```
+    Classes found: 15
+
+    wall: 270808 voxels (51.5%)
+    floor: 186966 voxels (35.6%)
+    cabinet: 866 voxels (0.2%)
+    bed: 628 voxels (0.1%)
+    chair: 24928 voxels (4.7%)
+    sofa: 1014 voxels (0.2%)
+    table: 12394 voxels (2.4%)
+    door: 1587 voxels (0.3%)
+    window: 9358 voxels (1.8%)
+    bookshelf: 2847 voxels (0.5%)
+    picture: 295 voxels (0.1%)
+    counter: 184 voxels (0.0%)
+    desk: 1200 voxels (0.2%)
+    curtain: 8477 voxels (1.6%)
+    otherfurniture: 4079 voxels (0.8%)
+    ```
+
 
 #### **Архитектура 3: KPConv (KPFCNN, Point-based)**
 
@@ -134,3 +179,20 @@ KPConv, как представитель классического point-based
   </tr>
 </table>
 </div>
+
+*   **Полная статистика классов (из лога выполнения, S3DIS13):**
+    ```
+    Classes found: 11
+
+    ceiling: 8657 voxels (1.7%)
+    floor: 71818 voxels (14.1%)
+    wall: 90472 voxels (17.8%)
+    window: 3 voxels (0.0%)
+    door: 15895 voxels (3.1%)
+    chair: 38109 voxels (7.5%)
+    table: 44414 voxels (8.7%)
+    bookcase: 23485 voxels (4.6%)
+    sofa: 167 voxels (0.0%)
+    board: 18 voxels (0.0%)
+    clutter: 214968 voxels (42.3%)
+    ```

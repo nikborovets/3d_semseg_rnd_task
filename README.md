@@ -125,7 +125,8 @@ python sonata_inference.py \
 python kpconv_inference.py \
     --downsampling_method "grid" \
     --voxel_size 0.03 \
-    --chunk_size 600000
+    --chunk_size 300000
+
 ```
 
 ## Outputs
