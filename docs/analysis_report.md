@@ -18,7 +18,14 @@
     *   `pcd_files/down0.01.pcd`: Даунсэмплинг оригинального скана (сохранен на диске). Формат: 3D RGB. Количество точек: 5.888.225.
 
 <div align="center">
-  <img src="../assets/input_music_room_downsampled_voxel_003.gif" alt="Оригинальный скан комнаты (music_room.pcd) после даунсэмплинга" width="400"/>
+<table>
+  <tr>
+    <td style="text-align: center; padding: 10px;">
+      <p><strong>Оригинальный скан комнаты (даунсэмплинг, Voxel 3см)</strong></p>
+      <img src="../assets/input_music_room_downsampled_voxel_003.gif" alt="Оригинальный скан комнаты (music_room.pcd) после даунсэмплинга" width="400"/>
+    </td>
+  </tr>
+</table>
 </div>
 
 ---
@@ -84,7 +91,14 @@ Sonata, как самая современная модель, продемон�
         *   **Доминирующие классы:** `wall` (52.5%), `floor` (16.6%), `cabinet` (16.4%), `otherfurniture` (5.4%).
 
 <div align="center">
-  <img src="../assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250"/>
+<table>
+  <tr>
+    <td style="text-align: center; padding: 10px;">
+      <p><strong>Результат сегментации (Sonata, Voxel 3см, Patch 512)</strong></p>
+      <img src="../assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250"/>
+    </td>
+  </tr>
+</table>
 </div>
 
 *   **Полная статистика классов (из лога выполнения, ScanNet20):**
