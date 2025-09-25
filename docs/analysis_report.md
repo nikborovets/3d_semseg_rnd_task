@@ -4,6 +4,11 @@
 
 ---
 
+#### **Ссылка на презентацию (25 сентября 2025)**
+*   Презентация: [Google Slides](https://docs.google.com/presentation/d/1LpHSxBxnbjZ-btQsK7Vua3Cy_nE_QS_JeG3QKRz9NU8/edit?usp=sharing)
+
+---
+
 #### **0. Входные данные**
 
 Входные данные представляют собой облака точек из музыкальной комнаты (реп. точка), полученные с лидара Leica BLK360 в формате .pcd.
