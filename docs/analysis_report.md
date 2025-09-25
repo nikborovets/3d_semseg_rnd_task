@@ -117,8 +117,8 @@ MinkUNet показал себя как надежный, но менее точ
       <img src="../assets/small_mink_002.gif" alt="MinkowskiNet Segmentation Result (Voxel 2cm)" width="250"/>
     </td>
     <td style="text-align: center; padding: 10px;">
-      <p><strong>Конфигурация 2 (Voxel 5 см)</strong></p>
-      <img src="../assets/small_mink_003.gif" alt="MinkowskiNet Segmentation Result (Voxel 5cm)" width="250"/>
+      <p><strong>Конфигурация 2 (Voxel 3 см)</strong></p>
+      <img src="../assets/small_mink_003.gif" alt="MinkowskiNet Segmentation Result (Voxel 3cm)" width="250"/>
     </td>
   </tr>
 </table>
