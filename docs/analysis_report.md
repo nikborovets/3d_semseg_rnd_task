@@ -21,7 +21,7 @@
 <table>
   <tr>
     <td style="text-align: center; padding: 10px; vertical-align: middle;">
-      <p><strong>Оригинальный скан комнаты (даунсэмплинг, Voxel 3см)</strong></p>
+      <p><strong>Оригинальный скан комнаты<br>(даунсэмплинг, Voxel 3см)</strong></p>
       <img src="../assets/input_music_room_downsampled_voxel_003.gif" alt="Оригинальный скан комнаты (music_room.pcd) после даунсэмплинга" width="400" style="display: block; margin: auto;"/>
     </td>
   </tr>
