@@ -20,9 +20,9 @@
 <div align="center">
 <table>
   <tr>
-    <td style="text-align: center; padding: 10px;">
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
       <p><strong>Оригинальный скан комнаты (даунсэмплинг, Voxel 3см)</strong></p>
-      <img src="../assets/input_music_room_downsampled_voxel_003.gif" alt="Оригинальный скан комнаты (music_room.pcd) после даунсэмплинга" width="400"/>
+      <img src="../assets/input_music_room_downsampled_voxel_003.gif" alt="Оригинальный скан комнаты (music_room.pcd) после даунсэмплинга" width="400" style="display: block; margin: auto;"/>
     </td>
   </tr>
 </table>
@@ -93,9 +93,9 @@ Sonata, как самая современная модель, продемон�
 <div align="center">
 <table>
   <tr>
-    <td style="text-align: center; padding: 10px;">
-      <p><strong>Результат сегментации (Sonata, Voxel 3см, Patch 512)</strong></p>
-      <img src="../assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250"/>
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
+      <p><strong>Результат сегментации<br>(Sonata, Voxel 3см, Patch 512)</strong></p>
+      <img src="../assets/small_sonata_512_003.gif" alt="Sonata Segmentation Result" width="250" style="display: block; margin: auto;"/>
     </td>
   </tr>
 </table>
@@ -145,13 +145,13 @@ MinkUNet показал себя как надежный, но менее точ
 <div align="center">
 <table>
   <tr>
-    <td style="text-align: center; padding: 10px;">
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
       <p><strong>Конфигурация 1 (Voxel 2 см)</strong></p>
-      <img src="../assets/small_mink_002.gif" alt="MinkowskiNet Segmentation Result (Voxel 2cm)" width="250"/>
+      <img src="../assets/small_mink_002.gif" alt="MinkowskiNet Segmentation Result (Voxel 2cm)" width="250" style="display: block; margin: auto;"/>
     </td>
-    <td style="text-align: center; padding: 10px;">
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
       <p><strong>Конфигурация 2 (Voxel 3 см)</strong></p>
-      <img src="../assets/small_mink_003.gif" alt="MinkowskiNet Segmentation Result (Voxel 3cm)" width="250"/>
+      <img src="../assets/small_mink_003.gif" alt="MinkowskiNet Segmentation Result (Voxel 3cm)" width="250" style="display: block; margin: auto;"/>
     </td>
   </tr>
 </table>
@@ -201,13 +201,13 @@ KPConv, как представитель классического point-based
 <div align="center">
 <table>
   <tr>
-    <td style="text-align: center; padding: 10px;">
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
       <p><strong>Конфигурация 1 (chunk size 60000) <br> demo in cpu</strong></p>
-      <img src="../assets/small_kp_conv_003_60000.gif" alt="KPConv Segmentation Result (chunk size 60000) demo in cpu" width="250"/>
+      <img src="../assets/small_kp_conv_003_60000.gif" alt="KPConv Segmentation Result (chunk size 60000) demo in cpu" width="250" style="display: block; margin: auto;"/>
     </td>
-    <td style="text-align: center; padding: 10px;">
+    <td style="text-align: center; padding: 10px; vertical-align: middle;">
       <p><strong>Конфигурация 2 (chunk size 30000) <br> demo in gpu</strong></p>
-      <img src="../assets/small_kp_conv_003_30000.gif" alt="KPConv Segmentation Result (chunk size 30000) demo in gpu" width="250"/>
+      <img src="../assets/small_kp_conv_003_30000.gif" alt="KPConv Segmentation Result (chunk size 30000) demo in gpu" width="250" style="display: block; margin: auto;"/>
     </td>
   </tr>
 </table>
