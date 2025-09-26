@@ -67,7 +67,7 @@ Follow these steps to set up the project environment and run the inference pipel
 First, pull the required Docker image and clone this repository.
 ```bash
 docker pull pointcept/pointcept:v1.5.0-pytorch1.11.0-cuda11.3-cudnn8-devel
-git clone https://github.com/nikborovets/3d_semseg_rnd_task.git
+git clone --recursive https://github.com/nikborovets/3d_semseg_rnd_task.git
 cd 3d_semseg_rnd_task
 ```
 
