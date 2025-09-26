@@ -268,7 +268,7 @@ def main():
         print("\n4. Creating colored point cloud...")
         pred_pcd = o3d.geometry.PointCloud()
         pred_colors = np.array(
-            [SCANNET_COLOR_MAP[VALID_CLASS_IDS[l]] for l in predictions]
+            [SCANNET_COLOR_MAP[VALID_CLASS_IDS[label]] for label in predictions]
         )
 
         pred_pcd.points = o3d.utility.Vector3dVector(voxel_coords)

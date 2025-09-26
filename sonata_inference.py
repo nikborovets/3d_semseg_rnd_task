@@ -15,6 +15,7 @@
 
 import sys
 import os
+import gc
 import numpy as np
 import open3d as o3d
 import argparse
@@ -90,8 +91,6 @@ def parse_args():
 #     flash_attn = None
 
 flash_attn = None
-
-import gc
 
 # Clear memory before starting
 torch.cuda.empty_cache()

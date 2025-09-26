@@ -98,6 +98,13 @@ bash compile_wrappers.sh
 cd ../../../
 ```
 
+### Step 5: Install and Run Pre-commit Hooks
+To ensure code quality and consistency, this project uses `pre-commit` hooks. Install them to your Git repository and run them on all files:
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
+
 ## Usage
 
 Once the setup is complete, you can run inference using the provided scripts.
