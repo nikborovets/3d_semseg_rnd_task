@@ -3,14 +3,12 @@
 ```bash
 # set -e
 
-git clone https://github.com/Pointcept/Pointcept.git
-cd Pointcept
+git submodule add https://github.com/NVIDIA/MinkowskiEngine.git third_party/MinkowskiEngine && cd third_party/MinkowskiEngine && git checkout 02fc608bea4c0549b0a7b00ca1bf15dee4a0b228 && cd ../../
 
-mkdir -p third_party && cd third_party
+git submodule add https://github.com/facebookresearch/sonata.git third_party/sonata && cd third_party/sonata && git checkout 18c09ff8d713494f78a8213792262b910977a65d && cd ../../
 
-git clone --recursive https://github.com/NVIDIA/MinkowskiEngine.git
-git clone https://github.com/facebookresearch/sonata.git
-git clone https://github.com/HuguesTHOMAS/KPConv-PyTorch.git
+git submodule add https://github.com/HuguesTHOMAS/KPConv-PyTorch.git third_party/KPConv-PyTorch && cd third_party/KPConv-PyTorch && git checkout bf19211adf52098a90617ef21a677745d9775b10 && cd ../../
+
 
 cd ../../
 
