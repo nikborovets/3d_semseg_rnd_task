@@ -25,37 +25,64 @@ import torch.nn as nn
 from utils.pcd_preprocessor import load_and_preprocess_pcd
 from utils.utils import set_random_seed
 
-sys.path.append('./third_party/sonata')
+sys.path.append("./third_party/sonata")
 import sonata
 
 
 def parse_args():
     # --- Default Inference Parameters ---
-    pcd_path = '/workspace/pcd_files/down0.01.pcd'
-    output_dir = 'result_plys/sonata_plys'
-    device = 'cuda'
-    downsampling_method = 'grid'
+    pcd_path = "/workspace/pcd_files/down0.01.pcd"
+    output_dir = "result_plys/sonata_plys"
+    device = "cuda"
+    downsampling_method = "grid"
     voxel_size = 0.03
     seed = 42
     enc_patch_size = 512
     # ------------------------------------
 
-    parser = argparse.ArgumentParser(description="SONATA Semantic Segmentation Inference")
-    parser.add_argument('--pcd_path', type=str, default=pcd_path,
-                        help='Path to the input PCD file.')
-    parser.add_argument('--output_dir', type=str, default=output_dir,
-                        help='Directory to save the output PLY file.')
-    parser.add_argument('--device', type=str, default=device, choices=['cuda', 'cpu'],
-                        help='Device to use for inference.')
-    parser.add_argument('--downsampling_method', type=str, default=downsampling_method, choices=['grid', 'voxel', 'random'],
-                        help='Downsampling method.')
-    parser.add_argument('--voxel_size', type=float, default=voxel_size,
-                        help='Voxel size for downsampling.')
-    parser.add_argument('--seed', type=int, default=seed,
-                        help='Random seed for reproducibility.')
-    parser.add_argument('--enc_patch_size', type=int, default=enc_patch_size,
-                        help='Encoder patch size for SONATA model.')
+    parser = argparse.ArgumentParser(
+        description="SONATA Semantic Segmentation Inference"
+    )
+    parser.add_argument(
+        "--pcd_path", type=str, default=pcd_path, help="Path to the input PCD file."
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=output_dir,
+        help="Directory to save the output PLY file.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=device,
+        choices=["cuda", "cpu"],
+        help="Device to use for inference.",
+    )
+    parser.add_argument(
+        "--downsampling_method",
+        type=str,
+        default=downsampling_method,
+        choices=["grid", "voxel", "random"],
+        help="Downsampling method.",
+    )
+    parser.add_argument(
+        "--voxel_size",
+        type=float,
+        default=voxel_size,
+        help="Voxel size for downsampling.",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=seed, help="Random seed for reproducibility."
+    )
+    parser.add_argument(
+        "--enc_patch_size",
+        type=int,
+        default=enc_patch_size,
+        help="Encoder patch size for SONATA model.",
+    )
     return parser.parse_args()
+
 
 # try:
 #     import flash_attn
@@ -176,13 +203,15 @@ class SegHead(nn.Module):
 
 class SonataInferencer:
     def __init__(self, device, enc_patch_size=512):
-        self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         print(f"Using device: {self.device}")
-        
+
         print("Loading SONATA model...")
         if flash_attn is not None:
             print("Using Flash Attention configuration")
-            self.model = sonata.load("sonata", repo_id="facebook/sonata").to(self.device)
+            self.model = sonata.load("sonata", repo_id="facebook/sonata").to(
+                self.device
+            )
         else:
             print(f"Using fallback configuration with enc_patch_size={enc_patch_size}")
             custom_config = dict(
@@ -192,36 +221,36 @@ class SonataInferencer:
             self.model = sonata.load(
                 "sonata", repo_id="facebook/sonata", custom_config=custom_config
             ).to(self.device)
-        
+
         print("Loading segmentation head...")
         ckpt = sonata.load(
             "sonata_linear_prob_head_sc", repo_id="facebook/sonata", ckpt_only=True
         )
         self.seg_head = SegHead(**ckpt["config"]).to(self.device)
         self.seg_head.load_state_dict(ckpt["state_dict"])
-        
+
         self.transform = sonata.transform.default()
-        
+
         self.model.eval()
         self.seg_head.eval()
         print("Model and segmentation head loaded successfully!")
 
     def predict(self, point_dict):
         print("Performing inference...")
-        
+
         # Clear memory
         torch.cuda.empty_cache()
         gc.collect()
-        
+
         start_time = time.time()
-        
+
         point = self.transform(point_dict)
-        
+
         with torch.inference_mode():
             for key in point.keys():
                 if isinstance(point[key], torch.Tensor):
                     point[key] = point[key].to(self.device, non_blocking=True)
-            
+
             point = self.model(point)
             while "pooling_parent" in point.keys():
                 assert "pooling_inverse" in point.keys()
@@ -229,16 +258,16 @@ class SonataInferencer:
                 inverse = point.pop("pooling_inverse")
                 parent.feat = torch.cat([parent.feat, point.feat[inverse]], dim=-1)
                 point = parent
-            
+
             feat = point.feat
             seg_logits = self.seg_head(feat)
             predictions = seg_logits.argmax(dim=-1).data.cpu().numpy()
-        
+
         inference_time = time.time() - start_time
         print(f"  Inference time: {inference_time:.2f} seconds")
-        
+
         coords = point.coord.cpu().detach().numpy()
-        
+
         return coords, predictions
 
 
@@ -248,13 +277,15 @@ def main():
     set_random_seed(args.seed)
     sonata.utils.set_seed(args.seed)
     print("✅ SONATA seed set")
-    
+
     print("=" * 80)
     print("SONATA INFERENCE - SEMANTIC SEGMENTATION")
     print("=" * 80)
     print(f"Input file: {args.pcd_path}")
-    print(f"Model: SONATA")
-    print(f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}, enc_patch_size={args.enc_patch_size}")
+    print("Model: SONATA")
+    print(
+        f"Parameters: downsampling={args.downsampling_method}, voxel_size={args.voxel_size}m, seed={args.seed}, enc_patch_size={args.enc_patch_size}"
+    )
 
     try:
         # 1. Load and preprocess data
@@ -263,58 +294,69 @@ def main():
             file_path=args.pcd_path,
             downsampling_method=args.downsampling_method,
             voxel_size=args.voxel_size,
-            add_segmentation=True
+            add_segmentation=True,
         )
-        
+
         # 2. Initialize model
         print("\n2. Initializing model...")
         inferencer = SonataInferencer(args.device, args.enc_patch_size)
-        
+
         # 3. Perform semantic segmentation
         print("\n3. Performing semantic segmentation...")
         coords, predictions = inferencer.predict(point_dict)
-        
+
         # 4. Visualize and save
         print("\n4. Creating colored point cloud...")
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(coords)
-        pcd.colors = o3d.utility.Vector3dVector(np.array(CLASS_COLOR_20)[predictions] / 255)
-        
+        pcd.colors = o3d.utility.Vector3dVector(
+            np.array(CLASS_COLOR_20)[predictions] / 255
+        )
+
         # Create output filename
         input_filename = os.path.splitext(os.path.basename(args.pcd_path))[0]
         model_name = "sonata"
 
         # Build filename components based on flash_attn availability
-        enc_patch_part = f"enc_patch_size_{args.enc_patch_size}_" if flash_attn is None else ""
+        enc_patch_part = (
+            f"enc_patch_size_{args.enc_patch_size}_" if flash_attn is None else ""
+        )
         flash_attn_part = "flash_attn_" if flash_attn is not None else ""
 
-        output_filename = (f"{input_filename}_Sonata_{model_name}_"
-                           f"{enc_patch_part}"
-                           f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
-                           f"{flash_attn_part}"
-                           f"segmented_seed_{args.seed}.ply")
+        output_filename = (
+            f"{input_filename}_Sonata_{model_name}_"
+            f"{enc_patch_part}"
+            f"downsample_{args.downsampling_method}_voxel{args.voxel_size}m_"
+            f"{flash_attn_part}"
+            f"segmented_seed_{args.seed}.ply"
+        )
         output_path = os.path.join(args.output_dir, output_filename)
-        
+
         print(f"\n5. Saving result to {output_path}...")
         os.makedirs(args.output_dir, exist_ok=True)
         o3d.io.write_point_cloud(output_path, pcd)
-        
+
         print("\n✅ INFERENCE COMPLETED SUCCESSFULLY!")
         print(f"   Processed points: {len(coords)}")
         print(f"   Result saved to: {output_path}")
         print(f"   Classes found: {len(np.unique(predictions))}")
 
         # Class statistics
-        print(f"\n--- Class Statistics ---")
+        print("\n--- Class Statistics ---")
         unique_classes, counts = np.unique(predictions, return_counts=True)
         for class_id, count in zip(unique_classes, counts):
-            class_name = CLASS_LABELS_20[class_id] if class_id < len(CLASS_LABELS_20) else "unknown"
+            class_name = (
+                CLASS_LABELS_20[class_id]
+                if class_id < len(CLASS_LABELS_20)
+                else "unknown"
+            )
             percentage = (count / len(predictions)) * 100
             print(f"   {class_name}: {count} points ({percentage:.1f}%)")
 
     except Exception as e:
         print(f"\n❌ ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
