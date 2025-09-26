@@ -25,7 +25,7 @@ import torch.nn as nn
 from utils.pcd_preprocessor import load_and_preprocess_pcd
 from utils.utils import set_random_seed
 
-sys.path.append('./Pointcept/third_party/sonata')
+sys.path.append('./third_party/sonata')
 import sonata
 
 

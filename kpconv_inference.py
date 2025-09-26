@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Script for KPConv model inference on a custom .pcd file
 Performs semantic segmentation and saves the result with S3DIS colors
@@ -18,8 +17,8 @@ from utils.pcd_preprocessor import load_and_preprocess_pcd, convert_to_kpconv_fo
 from utils.utils import set_random_seed
 
 # Add module paths
-sys.path.append('./Pointcept/third_party/KPConv-PyTorch')
-sys.path.append('./Pointcept/third_party/sonata')
+sys.path.append('./third_party/KPConv-PyTorch')
+sys.path.append('./third_party/sonata')
 
 # KPConv imports
 from utils.config import Config
