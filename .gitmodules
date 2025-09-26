@@ -1,0 +1,9 @@
+[submodule "third_party/MinkowskiEngine"]
+	path = third_party/MinkowskiEngine
+	url = https://github.com/NVIDIA/MinkowskiEngine.git
+[submodule "third_party/sonata"]
+	path = third_party/sonata
+	url = https://github.com/facebookresearch/sonata.git
+[submodule "third_party/KPConv-PyTorch"]
+	path = third_party/KPConv-PyTorch
+	url = https://github.com/HuguesTHOMAS/KPConv-PyTorch.git
