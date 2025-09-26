@@ -1,0 +1,21 @@
+**/.git
+**/.gitmodules
+**/.gitignore
+
+# Ignore python cache
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore datasets
+data/

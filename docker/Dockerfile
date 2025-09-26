@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y git ninja-build cmake build-essential l
     rm -rf /var/lib/apt/lists/*
 RUN pip install open3d
 
-COPY Pointcept/third_party/MinkowskiEngine /workspace/MinkowskiEngine
-COPY Pointcept/third_party/KPConv-PyTorch /workspace/KPConv-PyTorch
+COPY third_party/MinkowskiEngine /workspace/MinkowskiEngine
+COPY third_party/KPConv-PyTorch /workspace/KPConv-PyTorch
 
 RUN cd /workspace/MinkowskiEngine && python setup.py install --force_cuda --blas=openblas
 RUN cd /workspace/KPConv-PyTorch/cpp_wrappers && bash compile_wrappers.sh

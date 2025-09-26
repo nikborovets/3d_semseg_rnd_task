@@ -64,9 +64,8 @@ sudo systemctl restart docker
 Follow these steps to set up the project environment and run the inference pipeline.
 
 ### Step 1: Clone the Repository and Download Dependencies
-First, pull the required Docker image and clone this repository.
+First, clone this repository.
 ```bash
-docker pull pointcept/pointcept:v1.5.0-pytorch1.11.0-cuda11.3-cudnn8-devel
 git clone --recursive https://github.com/nikborovets/3d_semseg_rnd_task.git
 cd 3d_semseg_rnd_task
 ```
@@ -94,9 +93,9 @@ Enter the running container to compile C++/CUDA wrappers required by KPConv.
 docker exec -it 3d_semseg_rnd_task-pointcept_me-1 /bin/bash
 
 # Inside the container, run the following commands:
-cd Pointcept/third_party/KPConv-PyTorch/cpp_wrappers
+cd third_party/KPConv-PyTorch/cpp_wrappers
 bash compile_wrappers.sh
-cd ../../../../
+cd ../../../
 ```
 
 ## Usage
